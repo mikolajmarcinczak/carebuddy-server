@@ -33,7 +33,6 @@
       "memory-cache": "^0.2.0",
       "morgan": "~1.9.1",
       "pg": "^8.4.0",
-      "reflect-metadata": "^0.1.13",
       "typescript": "^5.4.2"
    },
    "devDependencies": {

@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client"
 
-import "reflect-metadata"
 import * as dotenv from "dotenv"
 import * as console from "console";
 
