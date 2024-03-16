@@ -3,7 +3,6 @@ import { Application } from "express"
 
 import * as dotenv from "dotenv"
 
-import "reflect-metadata"
 import Routes from "./routes";
 import bodyParser from "body-parser";
 import cors from "cors";
