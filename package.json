@@ -12,6 +12,7 @@
       "start:dev": "concurrently \"tsc -w\" \"nodemon build/server.js\""
    },
    "dependencies": {
+      "@prisma/client": "^5.11.0",
       "@types/bcrypt": "^5.0.2",
       "@types/cors": "^2.8.17",
       "@types/express": "^4.17.21",
@@ -33,12 +34,12 @@
       "morgan": "~1.9.1",
       "pg": "^8.4.0",
       "reflect-metadata": "^0.1.13",
-      "typeorm": "0.3.20"
+      "typescript": "^5.4.2"
    },
    "devDependencies": {
       "@types/helmet": "^4.0.0",
       "@types/node": "^16.11.10",
-      "ts-node": "10.9.1",
-      "typescript": "^5.5.0-dev.20240313"
+      "prisma": "^5.11.0",
+      "ts-node": "10.9.1"
    }
 }

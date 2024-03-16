@@ -1,24 +1,43 @@
-import { DataSource } from "typeorm"
-import { User } from "../entity/User"
+import { PrismaClient } from "@prisma/client"
 
 import "reflect-metadata"
 import * as dotenv from "dotenv"
+import * as console from "console";
 
 dotenv.config();
 const { DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE, NODE_ENV } =
     process.env;
 
-export const AppDataSource = new DataSource({
-    type: "postgres",
-    host: DB_HOST,
-    port: parseInt(DB_PORT || "5432"),
-    username: DB_USERNAME,
-    password: DB_PASSWORD,
-    database: DB_DATABASE,
-    ssl: true,
-    synchronize: NODE_ENV === "dev",
-    logging: NODE_ENV === "dev",
-    entities: [User],
-    migrations: [__dirname + "/migrations/*{.ts}"],
-    subscribers: [],
-})
+class AppDataSource extends PrismaClient {
+  constructor() {
+    super({
+      datasources: {
+        db: {
+          url: `postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}?sslmode=verify-full"`
+        }
+      }
+    });
+  }
+
+  async connect() {
+    try {
+      await this.$connect();
+      console.log(`Connected to database: ${DB_DATABASE}`);
+    }
+    catch (err) {
+      console.error(`Prisma failed to connect to database: ${DB_DATABASE}`, err);
+    }
+  }
+
+  async disconnect() {
+    try {
+      await this.$disconnect();
+      console.log(`Disconnected from database.`);
+    }
+    catch (err) {
+      console.error(`Error closing prisma connection: ${DB_DATABASE}`, err);
+    }
+  }
+}
+
+export default new AppDataSource();

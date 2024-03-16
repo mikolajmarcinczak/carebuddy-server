@@ -2,7 +2,7 @@ import {CorsOptions} from "cors";
 import {config} from "./utility/config";
 import express, {Application} from "express";
 import Server from "./server.model";
-import {AppDataSource} from "./utility/data-source";
+import AppDataSource from "./utility/data-source";
 import * as console from "console";
 
 const static_path = __dirname + '/public';
@@ -21,7 +21,17 @@ const startServer = (configuration : TServerConfig) => {
   const app: Application = express();
   const server = new Server(app, configuration);
 
-  AppDataSource.initialize()
+  process.on("SIGINT", async () => {
+    await AppDataSource.connect();
+    process.exit();
+  });
+
+  process.on("SIGTERM", async () => {
+    await AppDataSource.disconnect();
+    process.exit();
+  });
+
+  AppDataSource.connect()
       .then(async () => {
 
         app.listen(configuration.port, "localhost", () => {
@@ -33,12 +43,17 @@ const startServer = (configuration : TServerConfig) => {
           else {
             console.log(err);
           }
+        }).on("close", async () => {
+          await AppDataSource.$disconnect();
+          console.log("Data source disconnected");
         });
 
         console.log("Data source initialized");
       })
-      .catch((err) => {
+      .catch(async (err) => {
         console.error("Error initializing data source", err);
+        await AppDataSource.$disconnect()
+        process.exit(1)
       });
 }
 
