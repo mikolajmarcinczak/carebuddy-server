@@ -15,7 +15,7 @@ class AuthRoutes implements IRoutes {
     this.router.post('/register', this.controller.register);
     this.router.post('/logout', this.controller.logout);
     this.router.post('/forgotPassword', this.controller.forgotPassword);
-    this.router.post('/resetPassword', this.controller.resetPassword);
+    this.router.post('/resetPassword/:token', this.controller.resetPassword);
   }
 }
 

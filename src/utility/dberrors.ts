@@ -16,24 +16,24 @@ export class Errors {
   static couldNotRetrieve = (res: Response, context: string, error: Error) => {
     res.json({body: 'Could not retrieve', context: context, error: error});
     res.status(500);
-    console.error('Could not retrieve album: ', error);
+    console.error('Could not retrieve: ', error);
   }
 
   static couldNotCreate = (res: Response, context: string, error: Error) => {
     res.json({body: 'Could not create', context: context, error: error});
     res.status(500);
-    console.error('Could not create album: ', error);
+    console.error('Could not create: ', error);
   }
 
   static couldNotUpdate = (res: Response, context: string, error: Error) => {
     res.json({body: 'Could not update', context: context, error: error});
     res.status(500);
-    console.error('Could not update album: ', error);
+    console.error('Could not update: ', error);
   }
 
   static couldNotDelete = (res: Response, context: string, error: Error) => {
     res.json({body: 'Could not delete', context: context, error: error});
     res.status(500);
-    console.error('Could not delete album: ', error);
+    console.error('Could not delete: ', error);
   }
 }

@@ -5,8 +5,14 @@ import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import AppDataSource from "../utility/data-source";
 import {validationResult} from "express-validator";
+import {generateToken} from "../utility/generate.token";
+
+const RETRY_TIMER = 5
+const RESET_TOKEN_BYTES = 16
 
 export default class AuthController {
+  emailService = {};
+
   async login(req: Request, res: Response) {
     const userBody = req.body;
     const errors = validationResult(req);
@@ -24,16 +30,13 @@ export default class AuthController {
           password: true,
           role: true,
           user_id: true,
+          retry: true,
+          retryExp: true
         }
       });
 
-      if (!user) {
-        res.redirect(302, '/login');
-        return Errors.notFound(res, 'auth');
-      }
-
       const pass = await argon2.verify(user?.password, userBody.password);
-      const retryCount = 0; //Number(user?.retry);
+      const retryCount = Number(user?.retry);
 
       if (pass && retryCount <= 3) {
         var token = jwt.sign(
@@ -48,9 +51,89 @@ export default class AuthController {
               return jwtToken;
             });
 
+        await AppDataSource.users.update({
+          where: {
+            user_id: user.user_id
+          },
+          data: {
+            retry: 0,
+            retryExp: 0
+          }
+        });
+
         //update user retry count
 
-        await res.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
+        return res.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
+      }
+      else {
+        if (user) {
+
+          switch (user.retry) {
+            case 3:
+              if(Number(user.retryExp) > new Date(Date.now()).valueOf()) {
+                res.json({
+                  message: "Your account is still locked. Please contact support to unlock your account",
+                  now: new Date(Date.now()).valueOf(),
+                  exp: Number(user.retryExp)
+                })
+              }
+              else {
+                await AppDataSource.users.update({
+                  where: {
+                    email: req.body.email,
+                    user_id: user.user_id
+                  },
+                  data: {
+                    retry: 1,
+                  }
+                })
+                res.json({
+                  message: "Your account is unlocked",
+                  now: new Date(Date.now()).valueOf(),
+                  exp: Number(user.retryExp)
+                })
+              }
+              break;
+            case 2:
+              await AppDataSource.users.update({
+                where: {
+                  email: req.body.email,
+                  user_id: user.user_id
+                },
+                data: {
+                  retry: {
+                    increment: 1
+                  },
+                  retryExp: new Date(Date.now() + RETRY_TIMER * 60000).valueOf()
+                }
+              })
+              res.json({
+                message: `Your account has been locked for ${RETRY_TIMER} minute(s). Please try again later`
+              })
+              break;
+            default:
+              await AppDataSource.users.update({
+                where: {
+                  email: req.body.email,
+                  user_id: user.user_id
+                },
+                data: {
+                  retry: {
+                    increment: 1
+                  }
+                }
+              })
+              res.json({
+                message: "Something went wrong, please try again. "
+              })
+          }
+        }
+        else {
+          res.json({
+            message: "There is no account with that email address. Please try again."
+          })
+          res.redirect(302, '/login')
+        }
       }
     }
     catch (error: unknown) {
@@ -60,7 +143,9 @@ export default class AuthController {
   }
 
   async logout(req: Request, res: Response) {
-
+    res.clearCookie('accessToken', {path: '/'});
+    res.status(200).send({message: 'Logged out successfully'});
+    return res.redirect('/');
   }
 
   async register(req: Request, res: Response) {
@@ -81,7 +166,7 @@ export default class AuthController {
       });
       res.status(200).send({message: `User '${newUser.username}' created successfully`, user: newUser});
 
-      var token = jwt.sign(
+      let token = jwt.sign(
           {user_id: newUser.user_id},
           process.env.JWT_SECRET as string,
           {expiresIn: '3600'},
@@ -102,10 +187,79 @@ export default class AuthController {
   }
 
   async forgotPassword(req: Request, res: Response) {
+    try {
+      const user = await AppDataSource.users.findUnique({
+        where: {
+          email: req.body.email
+        }
+      });
 
+      if (user != null) {
+        const token = await generateToken(RESET_TOKEN_BYTES);
+        const resetToken = await AppDataSource.users.update({
+          where: {
+            email: req.body.email
+          },
+          data: {
+            resetPass: token,
+            resetExp: new Date(Date.now() + RETRY_TIMER * 60000).valueOf()
+          }
+        });
+
+        await this.emailService//.sendResetTokenEmail(user.email, token);
+
+        return res.json({
+          message: `Reset token has been sent to ${user.email}`,
+          resetToken: resetToken
+        })
+      }
+      else {
+        return Errors.notFound(res.json({
+          reason: `Account with email address: ${req.body.email} does not exist`
+        }), 'auth');
+      }
+    }
+    catch (error: unknown) {
+      assertIsError(error);
+      return Errors.couldNotRetrieve(res, 'auth', error);
+    }
   }
 
   async resetPassword(req: Request, res: Response) {
+    try {
+      const user = await AppDataSource.users.findUnique({
+        where: {
+          resetPass: req.params.token
+        }
+      });
 
+      if (user?.resetExp) {
+        if (user.resetExp  > new Date(Date.now()).valueOf()) {
+          const hashedPw = await argon2.hash(req.body.password);
+          const resetToken = await AppDataSource.users.update({
+            where: {
+              email: user.email
+            },
+            data: {
+              password: hashedPw,
+              resetPass: "",
+              resetExp: 0
+            }
+          });
+
+          return res.status(200).send({message: `Password for '${user.username} has been changed`, user: user.username});
+        }
+        else {
+          return Errors.couldNotUpdate(res, 'auth', new Error('Reset token has expired'));
+        }
+      }
+      else {
+        return res.json({message: `Looks like you are trying to reset your password. You will be redirected...`}).redirect(302, '/forgot-password');
+      }
+    }
+    catch (error: unknown) {
+      assertIsError(error);
+      return Errors.couldNotUpdate(res, 'auth', error);
+    }
   }
 }
