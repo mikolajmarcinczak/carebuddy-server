@@ -1,17 +1,24 @@
-import { Request, Response } from "express";
+import {Request, Response} from "express";
+import {validationResult} from "express-validator";
+import {UserDTO} from "../dto/user.dto";
+import {Errors} from "../utility/dberrors";
+import {generateToken} from "../utility/generate.token";
+import {assertIsError} from "../utility/error.guard";
+
 import * as argon2 from "argon2";
 import * as jwt from "jsonwebtoken";
-import {assertIsError} from "../utility/error.guard";
-import {Errors} from "../utility/dberrors";
+import * as process from "process";
+
 import AppDataSource from "../utility/data-source";
-import {validationResult} from "express-validator";
-import {generateToken} from "../utility/generate.token";
+import MailService from "../services/mail.service";
+import HtmlProcessingService from "../services/html-processing.service";
 
 const RETRY_TIMER = 5
 const RESET_TOKEN_BYTES = 16
 
 export default class AuthController {
-  emailService = {};
+  emailService = MailService;
+  messageProcessingService = HtmlProcessingService;
 
   async login(req: Request, res: Response) {
     const userBody = req.body;
@@ -39,7 +46,7 @@ export default class AuthController {
       const retryCount = Number(user?.retry);
 
       if (pass && retryCount <= 3) {
-        var token = jwt.sign(
+        let token = jwt.sign(
             {user_id: user.user_id},
             process.env.JWT_SECRET as string,
             {expiresIn: '3600'},
@@ -51,6 +58,7 @@ export default class AuthController {
               return jwtToken;
             });
 
+        //update user retry count
         await AppDataSource.users.update({
           where: {
             user_id: user.user_id
@@ -61,7 +69,6 @@ export default class AuthController {
           }
         });
 
-        //update user retry count
 
         return res.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
       }
@@ -70,7 +77,7 @@ export default class AuthController {
 
           switch (user.retry) {
             case 3:
-              if(Number(user.retryExp) > new Date(Date.now()).valueOf()) {
+              if (Number(user.retryExp) > new Date(Date.now()).valueOf()) {
                 res.json({
                   message: "Your account is still locked. Please contact support to unlock your account",
                   now: new Date(Date.now()).valueOf(),
@@ -132,7 +139,7 @@ export default class AuthController {
           res.json({
             message: "There is no account with that email address. Please try again."
           })
-          res.redirect(302, '/login')
+          return res.redirect(302, '/login')
         }
       }
     }
@@ -149,6 +156,7 @@ export default class AuthController {
   }
 
   async register(req: Request, res: Response) {
+    const userBody = req.body;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({errors: errors.array()});
@@ -158,13 +166,14 @@ export default class AuthController {
       const hashedPw = await argon2.hash(req.body.password);
       const newUser = await AppDataSource.users.create({
         data: {
-          username: req.body.username,
+          username: userBody.username,
           password: hashedPw,
-          role: req.body.role,
-          email: req.body.email
+          role: userBody.role,
+          email: userBody.email
         }
       });
-      res.status(200).send({message: `User '${newUser.username}' created successfully`, user: newUser});
+      const userData = new UserDTO(newUser.username, newUser.email, newUser.role);
+      const responseStatus = res.status(200).send({message: `User '${userData.username}' created successfully`, userData: userData});
 
       let token = jwt.sign(
           {user_id: newUser.user_id},
@@ -179,7 +188,7 @@ export default class AuthController {
 
           });
 
-      await res.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
+      return responseStatus.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
     } catch (error: unknown) {
       assertIsError(error);
       Errors.couldNotCreate(res, 'auth', error);
@@ -206,7 +215,7 @@ export default class AuthController {
           }
         });
 
-        await this.emailService//.sendResetTokenEmail(user.email, token);
+        await this.sendResetTokenEmail(user.email, user.username, token);
 
         return res.json({
           message: `Reset token has been sent to ${user.email}`,
@@ -261,5 +270,10 @@ export default class AuthController {
       assertIsError(error);
       return Errors.couldNotUpdate(res, 'auth', error);
     }
+  }
+
+  async sendResetTokenEmail(email: string, username: string, token: string) {
+    let html = await this.messageProcessingService.generateResetPasswordMessage(username, token);
+    await this.emailService.sendMail(process.env["MAIL_USERNAME "], email, "Your access token", html);
   }
 }
