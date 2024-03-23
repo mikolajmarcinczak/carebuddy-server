@@ -3,7 +3,9 @@ import {config} from "./utility/config";
 import express, {Application} from "express";
 import Server from "./server.model";
 import AppDataSource from "./utility/data-source";
-import * as console from "console";
+import https from "https";
+import path from "path";
+import * as fs from "fs";
 
 const static_path = __dirname + '/public';
 const PORT: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
@@ -31,10 +33,12 @@ const startServer = (configuration : TServerConfig) => {
     process.exit();
   });
 
+  const sslServer = https.createServer(server.sslOptions, app);
+
   AppDataSource.connect()
       .then(async () => {
 
-        app.listen(configuration.port, "localhost", () => {
+        sslServer.listen(configuration.port, "localhost", () => {
           console.log(`Server listening on port ${configuration.port}`);
         }).on("error", (err: any) => {
           if (err.code === "EADDRINUSE") {

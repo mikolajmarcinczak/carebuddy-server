@@ -12,10 +12,10 @@ class UserRoutes implements IRoutes {
 
   initRoutes() {
     this.router.get('/:role/all', this.controller.getUsersByRole);
-    this.router.get('/:user_id', this.controller.getSingleUser);
+    this.router.get('/', this.controller.getSingleUser);
     this.router.post('/add', this.controller.addSingleUser);
-    this.router.put('/:user_id', this.controller.updateSingleUser);
-    this.router.delete('/:user_id', this.controller.removeSingleUser);
+    this.router.put('/', this.controller.updateSingleUser);
+    this.router.delete('/', this.controller.removeSingleUser);
   }
 }
 

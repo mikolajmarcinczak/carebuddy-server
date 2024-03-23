@@ -8,9 +8,12 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import helmet from "helmet";
 import limit from "express-rate-limit";
+import fs from "fs";
+import path from "path";
 
 export default class Server {
     configuration: TServerConfig;
+    sslOptions: any;
 
     constructor(app: Application, configuration: TServerConfig) {
         this.configuration = configuration;
@@ -31,5 +34,9 @@ export default class Server {
 
         app.disable('x-powered-by');
 
+        this.sslOptions = {
+            key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
+            cert: fs.readFileSync(path.join(__dirname, 'localhost.pem'))
+        }
     }
 }

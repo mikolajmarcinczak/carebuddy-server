@@ -7,7 +7,7 @@ export default class UsersController {
 
   //region Get
   async getSingleUser(req: Request, res: Response) {
-    const id = req.params.id as string;
+    const id = req.query.user_id as string;
 
     if (id === "" || id === undefined || id === null) {
       return Errors.badRequest(res, 'users');
@@ -73,7 +73,7 @@ export default class UsersController {
 
   async updateSingleUser(req: Request, res: Response) {
     const userBody = req.body;
-    const id = req.params.id as string;
+    const id = req.query.user_id as string;
 
     if (Object.keys(userBody).length === 0 || id === "" || id === undefined || id === null) {
       return Errors.badRequest(res, 'users');
@@ -95,7 +95,7 @@ export default class UsersController {
   }
 
   async removeSingleUser(req: Request, res: Response) {
-    const id = req.params.id as string;
+    const id = req.query.user_id as string;
 
     if (id === "" || id === undefined || id === null) {
       return Errors.badRequest(res, 'users');

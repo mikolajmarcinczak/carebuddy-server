@@ -20,6 +20,15 @@ export default class AuthController {
   emailService = MailService;
   messageProcessingService = HtmlProcessingService;
 
+  constructor() {
+    this.login = this.login.bind(this);
+    this.logout = this.logout.bind(this);
+    this.register = this.register.bind(this);
+    this.forgotPassword = this.forgotPassword.bind(this);
+    this.resetPassword = this.resetPassword.bind(this);
+    this.sendResetTokenEmail = this.sendResetTokenEmail.bind(this);
+  }
+
   async login(req: Request, res: Response) {
     const userBody = req.body;
     const errors = validationResult(req);
@@ -30,7 +39,7 @@ export default class AuthController {
     try {
       const user = await AppDataSource.users.findUnique({
         where: {
-          user_id: userBody.user_id
+          email: userBody.email,
         },
         select: {
           username: true,
@@ -47,7 +56,7 @@ export default class AuthController {
 
       if (pass && retryCount <= 3) {
         let token = jwt.sign(
-            {user_id: user.user_id},
+            {id: user.user_id},
             process.env.JWT_SECRET as string,
             {expiresIn: '3600'},
             (err, jwtToken) => {
@@ -55,7 +64,6 @@ export default class AuthController {
                 assertIsError(err);
                 return Errors.couldNotCreate(res, 'auth', err);
               }
-              return jwtToken;
             });
 
         //update user retry count
@@ -70,7 +78,8 @@ export default class AuthController {
         });
 
 
-        return res.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
+        await res.cookie('accessToken', token, {httpOnly: true, expires: new Date(Date.now() + 8 * 3600000), path: '/'});
+        return res.status(200).send({message: 'Logged in successfully', token: token, user: user});
       }
       else {
         if (user) {
@@ -145,14 +154,13 @@ export default class AuthController {
     }
     catch (error: unknown) {
       assertIsError(error);
-      Errors.couldNotRetrieve(res, 'auth', error);
+      return Errors.couldNotRetrieve(res, 'auth', error);
     }
   }
 
   async logout(req: Request, res: Response) {
     res.clearCookie('accessToken', {path: '/'});
-    res.status(200).send({message: 'Logged out successfully'});
-    return res.redirect('/');
+    return res.status(200).send({message: 'Logged out successfully'});
   }
 
   async register(req: Request, res: Response) {
@@ -173,7 +181,6 @@ export default class AuthController {
         }
       });
       const userData = new UserDTO(newUser.username, newUser.email, newUser.role);
-      const responseStatus = res.status(200).send({message: `User '${userData.username}' created successfully`, userData: userData});
 
       let token = jwt.sign(
           {user_id: newUser.user_id},
@@ -184,14 +191,13 @@ export default class AuthController {
               assertIsError(err);
               return Errors.couldNotCreate(res, 'auth', err);
             }
-            return jwtToken;
-
           });
 
-      return responseStatus.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
+      await res.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
+      return res.status(200).send({message: `User '${userData.username}' created successfully`, userData: userData, token: token});
     } catch (error: unknown) {
       assertIsError(error);
-      Errors.couldNotCreate(res, 'auth', error);
+      return Errors.couldNotCreate(res, 'auth', error);
     }
   }
 
@@ -211,7 +217,7 @@ export default class AuthController {
           },
           data: {
             resetPass: token,
-            resetExp: new Date(Date.now() + RETRY_TIMER * 60000).valueOf()
+            resetExp: new Date((Date.now() + RETRY_TIMER * 60000) / 1000).valueOf()
           }
         });
 
@@ -243,7 +249,7 @@ export default class AuthController {
       });
 
       if (user?.resetExp) {
-        if (user.resetExp  > new Date(Date.now()).valueOf()) {
+        if (user.resetExp  > new Date(Date.now() / 1000).valueOf()) {
           const hashedPw = await argon2.hash(req.body.password);
           const resetToken = await AppDataSource.users.update({
             where: {
