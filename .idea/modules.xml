@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../VueJS/carebuddy-client/.idea/carebuddy-client.iml" filepath="$PROJECT_DIR$/../VueJS/carebuddy-client/.idea/carebuddy-client.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/carebuddy-server.iml" filepath="$PROJECT_DIR$/.idea/carebuddy-server.iml" />
     </modules>
   </component>

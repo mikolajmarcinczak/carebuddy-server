@@ -7,26 +7,119 @@ export default class UsersController {
 
   //region Get
   async getSingleUser(req: Request, res: Response) {
-    const id = req.query.user_id as string;
+    const identifier = req.query.identifier as string;
 
-    if (id === "" || id === undefined || id === null) {
+    if (identifier === "" || identifier === undefined || identifier === null) {
       return Errors.badRequest(res, 'users');
     }
 
     try {
-      const user = await AppDataSource.users.findUnique({
-        where: {
-          user_id: id
-        }
-      });
+      let user;
+      if (identifier.includes('@')) {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            email: identifier
+          }
+        });
+      }
+      else {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            user_id: identifier
+          }
+        });
+      }
+
       if (!user) {
         return Errors.notFound(res, 'users');
       }
-      return res.status(200).send({message: `User '${user.username} retrieved successfully`, user: user});
+      return res.status(200).send({message: `User '${user.username}' retrieved successfully`, data: user});
     }
     catch (error: unknown) {
      assertIsError(error);
      return Errors.couldNotRetrieve(res, 'users', error);
+    }
+  }
+
+  async getElderlyUserInfo(req: Request, res: Response) {
+    const identifier = req.query.identifier as string;
+
+    if (identifier === "" || identifier === undefined || identifier === null) {
+      return Errors.badRequest(res, 'users');
+    }
+
+    try {
+      let user;
+      if (identifier.includes('@')) {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            email: identifier
+          },
+          include: {
+            elderlyaccountinfo: true
+          }
+        });
+      }
+      else {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            user_id: identifier
+          },
+          include: {
+            elderlyaccountinfo: true
+          }
+        });
+      }
+
+      if (!user) {
+        return Errors.notFound(res, 'users');
+      }
+      return res.status(200).send({message: `User '${user.username}' with '${user.role}' role retrieved successfully`, data: user});
+    }
+    catch (error: unknown) {
+      assertIsError(error);
+      return Errors.couldNotRetrieve(res, 'users', error);
+    }
+  }
+
+  async getCaregiverUserInfo(req: Request, res: Response) {
+    const identifier = req.query.identifier as string;
+
+    if (identifier === "" || identifier === undefined || identifier === null) {
+      return Errors.badRequest(res, 'users');
+    }
+
+    try {
+      let user;
+      if (identifier.includes('@')) {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            email: identifier
+          },
+          include: {
+            caregiveraccountinfo: true
+          }
+        });
+      }
+      else {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            user_id: identifier
+          },
+          include: {
+            caregiveraccountinfo: true
+          }
+        });
+      }
+
+      if (!user) {
+        return Errors.notFound(res, 'users');
+      }
+      return res.status(200).send({message: `User '${user.username}' with '${user.role}' retrieved successfully`, data: user});
+    }
+    catch (error: unknown) {
+      assertIsError(error);
+      return Errors.couldNotRetrieve(res, 'users', error);
     }
   }
 
@@ -43,7 +136,7 @@ export default class UsersController {
           role: role
         }
       });
-      res.status(200).send({message: `Users with role '${role}' retrieved successfully`, users: users});
+      res.status(200).send({message: `Users with role '${role}' retrieved successfully`, data: users});
     }
     catch (error: unknown) {
       assertIsError(error);
@@ -63,7 +156,7 @@ export default class UsersController {
       const user = await AppDataSource.users.create({
         data: userBody
       });
-      return res.status(200).send({message: `User '${user.username}' created successfully`, user: user});
+      return res.status(200).send({message: `User '${user.username}' created successfully`, data: user});
     }
     catch (error: unknown) {
       assertIsError(error);
@@ -73,20 +166,35 @@ export default class UsersController {
 
   async updateSingleUser(req: Request, res: Response) {
     const userBody = req.body;
-    const id = req.query.user_id as string;
+    const identifier = req.query.identifier as string;
 
-    if (Object.keys(userBody).length === 0 || id === "" || id === undefined || id === null) {
+    if (Object.keys(userBody).length === 0 || identifier === "" || identifier === undefined || identifier === null) {
       return Errors.badRequest(res, 'users');
     }
 
     try {
-      const user = await AppDataSource.users.update({
-        where: {
-          user_id: id
-        },
-        data: userBody
-      });
-      return res.status(200).send({message: `User '${user.username}' updated successfully`, user: user});
+      let user;
+      if (identifier.includes('@')) {
+        user = await AppDataSource.users.update({
+          where: {
+            email: identifier
+          },
+          data: userBody
+        });
+      }
+      else {
+        user = await AppDataSource.users.update({
+          where: {
+            user_id: identifier
+          },
+          data: userBody
+        });
+      }
+
+      if (!user) {
+        return Errors.notFound(res, 'users');
+      }
+      return res.status(200).send({message: `User '${user.username}' updated successfully`, data: user});
     }
     catch (error: unknown) {
       assertIsError(error);
@@ -95,28 +203,50 @@ export default class UsersController {
   }
 
   async removeSingleUser(req: Request, res: Response) {
-    const id = req.query.user_id as string;
+    const identifier = req.query.identifier as string;
 
-    if (id === "" || id === undefined || id === null) {
+    if (identifier === "" || identifier === undefined || identifier === null) {
       return Errors.badRequest(res, 'users');
     }
 
     try {
-      const user = await AppDataSource.users.findUnique({
-        where: {
-          user_id: id
-        }
-      });
+      let user;
+      if (identifier.includes('@')) {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            user_id: identifier
+          }
+        });
+      }
+      else {
+        user = await AppDataSource.users.findUnique({
+          where: {
+            email: identifier
+          }
+        });
+      }
+
       if (!user) {
         return Errors.notFound(res, 'users');
       }
 
-      const deletedUser = await AppDataSource.users.delete({
-        where: {
-          user_id: id
-        }
-      });
-      return res.status(200).send({message: `User '${user.username}' deleted successfully`, user: deletedUser});
+      let deletedUser;
+      if (identifier.includes('@')) {
+        deletedUser = await AppDataSource.users.findUnique({
+          where: {
+            user_id: identifier
+          }
+        });
+      }
+      else {
+        deletedUser = await AppDataSource.users.findUnique({
+          where: {
+            email: identifier
+          }
+        });
+      }
+
+      return res.status(200).send({message: `User '${user.username}' deleted successfully`, data: deletedUser});
     }
     catch (error: unknown) {
       assertIsError(error);

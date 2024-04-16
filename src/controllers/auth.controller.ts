@@ -79,7 +79,7 @@ export default class AuthController {
 
 
         await res.cookie('accessToken', token, {httpOnly: true, expires: new Date(Date.now() + 8 * 3600000), path: '/'});
-        return res.status(200).send({message: 'Logged in successfully', token: token, user: user});
+        return res.status(200).send({message: 'Logged in successfully', token: token, data: user});
       }
       else {
         if (user) {
@@ -193,8 +193,8 @@ export default class AuthController {
             }
           });
 
-      await res.cookie('accessToken', token, {httpOnly: true, secure: true, sameSite: 'none', path: '/'});
-      return res.status(200).send({message: `User '${userData.username}' created successfully`, userData: userData, token: token});
+      await res.cookie('accessToken', token, {httpOnly: true, secure: true, path: '/'});
+      return res.status(200).send({message: `User '${userData.username}' created successfully`, data: userData, token: token});
     } catch (error: unknown) {
       assertIsError(error);
       return Errors.couldNotCreate(res, 'auth', error);
@@ -262,7 +262,7 @@ export default class AuthController {
             }
           });
 
-          return res.status(200).send({message: `Password for '${user.username} has been changed`, user: user.username});
+          return res.status(200).send({message: `Password for '${user.username} has been changed`, data: user.username});
         }
         else {
           return Errors.couldNotUpdate(res, 'auth', new Error('Reset token has expired'));

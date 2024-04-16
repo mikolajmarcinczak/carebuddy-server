@@ -33,12 +33,12 @@ const startServer = (configuration : TServerConfig) => {
     process.exit();
   });
 
-  const sslServer = https.createServer(server.sslOptions, app);
+  //const sslServer = https.createServer(server.sslOptions, app);
 
   AppDataSource.connect()
       .then(async () => {
 
-        sslServer.listen(configuration.port, "localhost", () => {
+        app.listen(configuration.port, "localhost", () => {
           console.log(`Server listening on port ${configuration.port}`);
         }).on("error", (err: any) => {
           if (err.code === "EADDRINUSE") {

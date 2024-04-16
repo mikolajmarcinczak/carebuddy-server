@@ -7,8 +7,6 @@
       "build": "tsc && tsc-alias",
       "dev": "nodemon build/server.js",
       "start": "ts-node src/server.ts",
-      "typeorm": "typeorm-ts-node-commonjs",
-      "migration": " npm run typeorm migration:run -- -d src/utility/data-source.ts",
       "start:dev": "concurrently \"tsc -w\" \"nodemon build/server.js\""
    },
    "dependencies": {
