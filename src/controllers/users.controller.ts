@@ -41,6 +41,7 @@ export default class UsersController {
     }
   }
 
+  /*
   async getElderlyUserInfo(req: Request, res: Response) {
     const identifier = req.query.identifier as string;
 
@@ -81,8 +82,9 @@ export default class UsersController {
       return Errors.couldNotRetrieve(res, 'users', error);
     }
   }
+*/
 
-  async getCaregiverUserInfo(req: Request, res: Response) {
+  /*async getCaregiverUserInfo(req: Request, res: Response) {
     const identifier = req.query.identifier as string;
 
     if (identifier === "" || identifier === undefined || identifier === null) {
@@ -122,7 +124,7 @@ export default class UsersController {
       return Errors.couldNotRetrieve(res, 'users', error);
     }
   }
-
+*/
   async getUsersByRole(req: Request, res: Response) {
     const role = req.params.role as string;
 
@@ -148,7 +150,7 @@ export default class UsersController {
   async addSingleUser(req: Request, res: Response) {
     const userBody = req.body;
 
-    if (!userBody) {
+    if (!userBody || Object.keys(userBody).length === 0){
       return Errors.badRequest(res, 'users');
     }
 
@@ -215,6 +217,10 @@ export default class UsersController {
         user = await AppDataSource.users.findUnique({
           where: {
             user_id: identifier
+          },
+          include: {
+            caregiveraccountinfo: true,
+            elderlyaccountinfo: true
           }
         });
       }
@@ -222,6 +228,10 @@ export default class UsersController {
         user = await AppDataSource.users.findUnique({
           where: {
             email: identifier
+          },
+          include: {
+            caregiveraccountinfo: true,
+            elderlyaccountinfo: true
           }
         });
       }
@@ -230,21 +240,27 @@ export default class UsersController {
         return Errors.notFound(res, 'users');
       }
 
-      let deletedUser;
-      if (identifier.includes('@')) {
-        deletedUser = await AppDataSource.users.findUnique({
+      if (user.caregiveraccountinfo) {
+        await AppDataSource.caregiveraccountinfo.delete({
           where: {
-            user_id: identifier
+            user_id: user.user_id
           }
         });
       }
-      else {
-        deletedUser = await AppDataSource.users.findUnique({
+
+      if (user.elderlyaccountinfo) {
+        await AppDataSource.elderlyaccountinfo.delete({
           where: {
-            email: identifier
+            user_id: user.user_id
           }
         });
       }
+
+      const deletedUser = await AppDataSource.users.delete({
+        where: {
+          user_id: user.user_id
+        }
+      });
 
       return res.status(200).send({message: `User '${user.username}' deleted successfully`, data: deletedUser});
     }
