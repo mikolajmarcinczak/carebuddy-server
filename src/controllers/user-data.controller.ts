@@ -34,7 +34,7 @@ export default class UserDataController {
         });
       }
 
-      if (!user) {
+      if (!user || !user.elderlyaccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
       return res.status(200).send({message: `Data for user '${user.username}' retrieved successfully`, data: user});
@@ -64,8 +64,11 @@ export default class UserDataController {
         return Errors.notFound(res, 'usersData');
       }
 
+      delete userBody.email;
+      let user_id = user.user_id;
+
       const accountInfo = await AppDataSource.elderlyaccountinfo.create({
-        data: userBody.append(user)
+        data: {...userBody, user_id }
       });
 
       return res.status(201).send({message: `Data for user '${user.username}' created successfully`, data: accountInfo});
@@ -107,7 +110,7 @@ export default class UserDataController {
         });
       }
 
-      if (!user) {
+      if (!user || !user.elderlyaccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
 
@@ -155,7 +158,7 @@ export default class UserDataController {
         });
       }
 
-      if (!user) {
+      if (!user || !user.caregiveraccountinfo) {
         return Errors.notFound(res, 'users');
       }
       return res.status(200).send({message: `Data for user '${user.username}' retrieved successfully`, data: user});
@@ -185,8 +188,11 @@ export default class UserDataController {
         return Errors.notFound(res, 'usersData');
       }
 
+      delete userBody.email;
+      let user_id = user.user_id;
+
       const accountInfo = await AppDataSource.caregiveraccountinfo.create({
-        data: userBody.append(user)
+        data: {...userBody, user_id}
       });
 
       return res.status(201).send({message: `Data for user '${user.username}' created successfully`, data: accountInfo});
@@ -228,7 +234,7 @@ export default class UserDataController {
         });
       }
 
-      if (!user) {
+      if (!user || !user.caregiveraccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
 
