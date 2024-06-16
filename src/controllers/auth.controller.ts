@@ -30,7 +30,7 @@ export default class AuthController {
   }
 
   async login(req: Request, res: Response) {
-    const userBody = req.body;
+    const { email, password } = req.body;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -39,7 +39,7 @@ export default class AuthController {
     try {
       const user = await AppDataSource.users.findUnique({
         where: {
-          email: userBody.email,
+          email: email as string,
         },
         select: {
           username: true,
@@ -51,11 +51,11 @@ export default class AuthController {
         }
       });
 
-      const pass = await argon2.verify(user?.password, userBody.password);
+      const pass = await argon2.verify(user?.password as string, password as string);
       const retryCount = Number(user?.retry);
 
       if (pass && retryCount <= 3) {
-        let token = jwt.sign(
+        const token = jwt.sign(
             {id: user.user_id},
             process.env.JWT_SECRET as string,
             {expiresIn: '3600'},
@@ -77,6 +77,7 @@ export default class AuthController {
           }
         });
 
+        user['accessToken'] = token;
 
         await res.cookie('accessToken', token, {httpOnly: true, expires: new Date(Date.now() + 8 * 3600000), path: '/'});
         return res.status(200).send({message: 'Logged in successfully', token: token, data: user});
@@ -96,7 +97,7 @@ export default class AuthController {
               else {
                 await AppDataSource.users.update({
                   where: {
-                    email: req.body.email,
+                    email: email as string,
                     user_id: user.user_id
                   },
                   data: {
@@ -113,7 +114,7 @@ export default class AuthController {
             case 2:
               await AppDataSource.users.update({
                 where: {
-                  email: req.body.email,
+                  email: email as string,
                   user_id: user.user_id
                 },
                 data: {
@@ -130,7 +131,7 @@ export default class AuthController {
             default:
               await AppDataSource.users.update({
                 where: {
-                  email: req.body.email,
+                  email: email as string,
                   user_id: user.user_id
                 },
                 data: {
