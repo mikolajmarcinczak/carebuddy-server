@@ -55,11 +55,13 @@ export default class AuthController {
       const retryCount = Number(user?.retry);
 
       if (pass && retryCount <= 3) {
-        const token = jwt.sign(
+        let token: string;
+        jwt.sign(
             {id: user.user_id},
             process.env.JWT_SECRET as string,
             {expiresIn: '3600'},
             (err, jwtToken) => {
+              token = jwtToken;
               if (err) {
                 assertIsError(err);
                 return Errors.couldNotCreate(res, 'auth', err);
@@ -77,9 +79,14 @@ export default class AuthController {
           }
         });
 
+        console.log(token);
         user['accessToken'] = token;
 
-        await res.cookie('accessToken', token, {httpOnly: true, expires: new Date(Date.now() + 8 * 3600000), path: '/'});
+        await res.cookie('accessToken', token, {
+          httpOnly: true,
+          expires: new Date(Date.now() + 8 * 3600000),
+          path: '/'
+        });
         return res.status(200).send({message: 'Logged in successfully', token: token, data: user});
       }
       else {
@@ -183,16 +190,20 @@ export default class AuthController {
       });
       const userData = new UserDTO(newUser.username, newUser.email, newUser.role);
 
-      let token = jwt.sign(
+      let token: string;
+      jwt.sign(
           {user_id: newUser.user_id},
           process.env.JWT_SECRET as string,
           {expiresIn: '3600'},
           (err, jwtToken) => {
+            token = jwtToken;
             if (err) {
               assertIsError(err);
               return Errors.couldNotCreate(res, 'auth', err);
             }
           });
+
+      console.log('register token:' + token);
 
       await res.cookie('accessToken', token, {httpOnly: true, secure: true, path: '/'});
       return res.status(200).send({message: `User '${userData.username}' created successfully`, data: userData, token: token});
