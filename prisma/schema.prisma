@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "cockroachdb"
+  url      = env("DATABASE_URL")
+}
+
+model alarm {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String   @db.Uuid
+  event_id     String   @db.Uuid
+  trigger_time DateTime @db.Timestamp(6)
+  message      String?
+  event        event    @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model authorizationofcare {
+  elderly_id           String               @db.Uuid
+  caregiver_id         String               @db.Uuid
+  document_url         String?              @db.String(2083)
+  caregiveraccountinfo caregiveraccountinfo @relation(fields: [caregiver_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  elderlyaccountinfo   elderlyaccountinfo   @relation(fields: [elderly_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([elderly_id, caregiver_id])
+}
+
+model caregiveraccountinfo {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String                @unique @db.Uuid
+  phone_number        String                @db.String(15)
+  city                String                @db.String(50)
+  date_of_birth       DateTime              @db.Date
+  about_me            String?
+  rating              Float?
+  vote_count          Int?
+  authorizationofcare authorizationofcare[]
+  users               users                 @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model elderlyaccountinfo {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String                @unique @db.Uuid
+  phone_number        String                @db.String(15)
+  address             String
+  city                String                @db.String(50)
+  date_of_birth       DateTime              @db.Date
+  about_me            String?
+  height              Float
+  weight              Float
+  emergency_number    String                @db.String(15)
+  authorizationofcare authorizationofcare[]
+  users               users                 @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model event {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_ids    String[] @db.Uuid
+  time        DateTime @db.Timestamp(6)
+  location    String?  @db.String(255)
+  description String?
+  title       String   @db.String(255)
+  alarm       alarm[]
+}
+
+model knowledgebasearticle {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  title      String    @db.String(100)
+  content    String
+  tags       String[]  @db.String(255)
+  url        String?   @db.String(2083)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model medicaltreatmententity {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String   @db.Uuid
+  medicament_ids   String[] @db.Uuid
+  diagnosis_date   DateTime @db.Date
+  diagnosis        String
+  treatment_plan   String
+  certificate_url  String?  @db.String(2083)
+  prescription_url String?  @db.String(2083)
+  users            users    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model medicamententity {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String    @db.String(255)
+  dosage            String    @db.String(255)
+  manufacturer      String?   @db.String(255)
+  active_substance  String    @db.String(255)
+  composition       String?
+  contraindications String?
+  indications       String?
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model noteentity {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  related_user_ids String[]  @db.Uuid
+  related_urls     String[]  @db.String(2083)
+  title            String    @db.String(100)
+  content          String
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+  users            users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  user_id                String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username               String                   @unique @db.String(50)
+  password               String                   @db.String(100)
+  role                   String                   @db.String(50)
+  email                  String                   @unique @db.String(100)
+  resetPass              String?                  @unique
+  image_url              String?                  @db.String(2083)
+  resetExp               Int?
+  retry                  Int?                     @default(0)
+  retryExp               Int?
+  created_at             DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamp(6)
+  caregiveraccountinfo   caregiveraccountinfo?
+  elderlyaccountinfo     elderlyaccountinfo?
+  knowledgebasearticle   knowledgebasearticle[]
+  medicaltreatmententity medicaltreatmententity[]
+  noteentity             noteentity[]
+}
