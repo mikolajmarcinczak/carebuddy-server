@@ -5,6 +5,7 @@ import * as dotenv from "dotenv"
 
 import Routes from "./routes";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 import limit from "express-rate-limit";
@@ -27,6 +28,7 @@ export default class Server {
 
         dotenv.config();
         app.use(helmet());
+        app.use(cookieParser());
         app.use(cors(this.configuration.corsOptions));
         app.use(limit({ windowMs: time, limit: max }))
         app.use(bodyParser.json());

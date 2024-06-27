@@ -53,6 +53,7 @@ export default class AuthController {
 
       const pass = await argon2.verify(user?.password as string, password as string);
       const retryCount = Number(user?.retry);
+      const userData = new UserDTO(user.username, email, user.role);
 
       if (pass && retryCount <= 3) {
         let token: string;
@@ -80,22 +81,22 @@ export default class AuthController {
         });
 
         console.log(token);
-        user['accessToken'] = token;
+        userData['accessToken'] = token;
 
-        await res.cookie('accessToken', token, {
+        res.cookie('accessToken', token, {
           httpOnly: true,
           expires: new Date(Date.now() + 8 * 3600000),
           path: '/'
         });
-        return res.status(200).send({message: 'Logged in successfully', token: token, data: user});
+        return res.status(200).send({message: 'Logged in successfully', token: token, data: userData});
       }
       else {
         if (user) {
 
           switch (user.retry) {
             case 3:
-              if (Number(user.retryExp) > new Date(Date.now()).valueOf()) {
-                res.json({
+              if (BigInt(user.retryExp) > BigInt(Date.now()).valueOf()) {
+                return res.send({
                   message: "Your account is still locked. Please contact support to unlock your account",
                   now: new Date(Date.now()).valueOf(),
                   exp: Number(user.retryExp)
@@ -111,13 +112,12 @@ export default class AuthController {
                     retry: 1,
                   }
                 })
-                res.json({
+                return res.send({
                   message: "Your account is unlocked",
                   now: new Date(Date.now()).valueOf(),
                   exp: Number(user.retryExp)
                 })
               }
-              break;
             case 2:
               await AppDataSource.users.update({
                 where: {
@@ -131,10 +131,9 @@ export default class AuthController {
                   retryExp: new Date(Date.now() + RETRY_TIMER * 60000).valueOf()
                 }
               })
-              res.json({
+              return res.send({
                 message: `Your account has been locked for ${RETRY_TIMER} minute(s). Please try again later`
               })
-              break;
             default:
               await AppDataSource.users.update({
                 where: {
@@ -147,13 +146,13 @@ export default class AuthController {
                   }
                 }
               })
-              res.json({
-                message: "Something went wrong, please try again. "
+              return res.send({
+                message: "Password is wrong, please try again. "
               })
           }
         }
         else {
-          res.json({
+          res.send({
             message: "There is no account with that email address. Please try again."
           })
           return res.redirect(302, '/login')
@@ -166,7 +165,7 @@ export default class AuthController {
     }
   }
 
-  async logout(req: Request, res: Response) {
+  logout(req: Request, res: Response) {
     res.clearCookie('accessToken', {path: '/'});
     return res.status(200).send({message: 'Logged out successfully'});
   }

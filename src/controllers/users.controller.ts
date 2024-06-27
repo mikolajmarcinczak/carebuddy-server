@@ -2,6 +2,7 @@ import {Request, Response} from "express";
 import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import AppDataSource from "../utility/data-source";
+import {replacer} from "../utility/json.replacer";
 
 export default class UsersController {
 
@@ -125,6 +126,7 @@ export default class UsersController {
     }
   }
 */
+
   async getUsersByRole(req: Request, res: Response) {
     const role = req.params.role as string;
 
@@ -138,7 +140,11 @@ export default class UsersController {
           role: role
         }
       });
-      res.status(200).send({message: `Users with role '${role}' retrieved successfully`, data: users});
+
+      let usersString = JSON.stringify(users, replacer);
+      let usersData = JSON.parse(usersString, replacer)
+      console.log(usersData);
+      res.status(200).send({message: `Users with role '${role}' retrieved successfully`, data: usersData});
     }
     catch (error: unknown) {
       assertIsError(error);
