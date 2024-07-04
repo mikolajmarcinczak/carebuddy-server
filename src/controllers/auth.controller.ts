@@ -174,7 +174,7 @@ export default class AuthController {
     const userBody = req.body;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({errors: errors.array()});
+      return res.status(400).json({message: 'Errors found during validation', errors: errors.array()});
     }
 
     try {
@@ -204,7 +204,7 @@ export default class AuthController {
 
       console.log('register token:' + token);
 
-      await res.cookie('accessToken', token, {httpOnly: true, secure: true, path: '/'});
+      res.cookie('accessToken', token, {httpOnly: true, secure: true, path: '/'});
       return res.status(200).send({message: `User '${userData.username}' created successfully`, data: userData, token: token});
     } catch (error: unknown) {
       assertIsError(error);
