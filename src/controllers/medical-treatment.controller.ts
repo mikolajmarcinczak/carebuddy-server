@@ -15,18 +15,16 @@ export default class MedicalTreatmentController {
   }
 
   async getTreatmentDetails(req: Request, res: Response) {
-    const {id} = req.params;
+    const { id } = req.params;
 
     try {
       const treatment = await AppDataSource.medicaltreatmententity.findUnique({
-        where: {
-          id: id as string
-        }
+        where: { id },
       });
       if (!treatment) {
         return Errors.notFound(res, "medical_treatment");
       }
-      return res.status(200).send({message: "Medical treatment details retrieved successfully", data: treatment});
+      return res.status(200).send({ message: "Medical treatment retrieved successfully", data: treatment });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotRetrieve(res, "medical_treatment", error);
@@ -34,18 +32,23 @@ export default class MedicalTreatmentController {
   }
 
   async getMedicamentsForUser(req: Request, res: Response) {
-    const {userId} = req.params;
+    const { userId } = req.params;
 
     try {
-      const medicaments = await AppDataSource.medicaltreatmententity.findMany({
-        where: {
-          user_id: userId as string
-        }
+      const treatments = await AppDataSource.medicaltreatmententity.findMany({
+        where: { user_id: userId },
       });
-      if (!medicaments) {
-        return Errors.notFound(res, "medicaments");
+
+      if (!treatments || treatments.length === 0) {
+        return Errors.notFound(res, "medical_treatments");
       }
-      return res.status(200).send({message: "Medicaments retrieved successfully", data: medicaments});
+
+      const medicamentIds = treatments.flatMap(treatment => treatment.medicament_ids);
+      const medicaments = await AppDataSource.medicamententity.findMany({
+        where: { id: { in: medicamentIds } },
+      });
+
+      return res.status(200).send({ message: "Medicaments retrieved successfully", data: medicaments });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotRetrieve(res, "medicaments", error);
@@ -53,19 +56,21 @@ export default class MedicalTreatmentController {
   }
 
   async addMedicalTreatment(req: Request, res: Response) {
-    const {body} = req;
-    const {user_id, medicament_id, start_date, end_date} = body;
+    const { user_id, medicament_ids, diagnosis_date, diagnosis, treatment_plan, certificate_url, prescription_url } = req.body;
 
     try {
       const treatment = await AppDataSource.medicaltreatmententity.create({
         data: {
           user_id,
-          medicament_id,
-          start_date,
-          end_date
-        }
+          medicament_ids,
+          diagnosis_date,
+          diagnosis,
+          treatment_plan,
+          certificate_url,
+          prescription_url,
+        },
       });
-      return res.status(201).send({message: "Medical treatment added successfully", data: treatment});
+      return res.status(201).send({ message: "Medical treatment created successfully", data: treatment });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotCreate(res, "medical_treatment", error);
@@ -73,23 +78,23 @@ export default class MedicalTreatmentController {
   }
 
   async updateMedicalTreatment(req: Request, res: Response) {
-    const {id} = req.params;
-    const {body} = req;
-    const {user_id, medicament_ids, start_date, end_date} = body;
+    const { id } = req.params;
+    const { user_id, medicament_ids, diagnosis_date, diagnosis, treatment_plan, certificate_url, prescription_url } = req.body;
 
     try {
       const treatment = await AppDataSource.medicaltreatmententity.update({
-        where: {
-          id: id as string
-        },
+        where: { id },
         data: {
           user_id,
           medicament_ids,
-          start_date,
-          end_date
-        }
+          diagnosis_date,
+          diagnosis,
+          treatment_plan,
+          certificate_url,
+          prescription_url,
+        },
       });
-      return res.status(200).send({message: "Medical treatment updated successfully", data: treatment});
+      return res.status(200).send({ message: "Medical treatment updated successfully", data: treatment });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotUpdate(res, "medical_treatment", error);
@@ -97,45 +102,40 @@ export default class MedicalTreatmentController {
   }
 
   async endMedicalTreatment(req: Request, res: Response) {
-    const {id} = req.params;
+    const { id } = req.params;
 
     try {
-      const treatment = await AppDataSource.medicaltreatmententity.update({
-        where: {
-          id: id as string
-        },
-        data: {
-          end_date: new Date()
-        }
+      const treatment = await AppDataSource.medicaltreatmententity.delete({
+        where: { id },
       });
-      return res.status(200).send({message: "Medical treatment ended successfully", data: treatment});
+      return res.status(200).send({ message: "Medical treatment removed successfully", data: treatment });
     } catch (error: any) {
       assertIsError(error);
-      return Errors.couldNotUpdate(res, "medical_treatment", error);
+      return Errors.couldNotDelete(res, "medical_treatment", error);
     }
   }
 
   async getPrescription(req: Request, res: Response) {
-    const {id} = req.params;
+    const { id, userId } = req.params;
 
     try {
       const treatment = await AppDataSource.medicaltreatmententity.findUnique({
-        where: {
-          id: id as string
-        }
+        where: { id, user_id: userId },
       });
+
       if (!treatment) {
         return Errors.notFound(res, "medical_treatment");
       }
-      const medicament = await AppDataSource.medicamententity.findUnique({
-        where: {
-          id: treatment.medicament_ids
-        }
+
+      const medicamentIds = treatment.medicament_ids;
+      const medicaments = await AppDataSource.medicamententity.findMany({
+        where: { id: { in: medicamentIds } },
       });
-      if (!medicament) {
-        return Errors.notFound(res, "medicament");
-      }
-      return res.status(200).send({message: "Prescription retrieved successfully", data: medicament});
+
+      return res.status(200).send({
+        message: "Prescription retrieved successfully",
+        data: { medicaments, prescription_url: treatment.prescription_url },
+      });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotRetrieve(res, "prescription", error);

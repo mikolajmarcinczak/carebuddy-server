@@ -14,16 +14,24 @@ export default class EventController {
   }
 
   async addEvent(req: Request, res: Response) {
-    const {body} = req;
-    const {user_id, event_name, event_description, event_date} = body;
+    const {user_ids, time, location, description, title, alarms } = req.body;
+
 
     try {
       const event = await AppDataSource.event.create({
         data: {
-          user_id,
-          event_name,
-          event_description,
-          event_date
+          user_ids,
+          time,
+          location,
+          description,
+          title,
+          alarm: {
+            create: alarms.map((alarm: any) => ({
+              user_id: alarm.user_id,
+              trigger_time: alarm.trigger_time,
+              message: alarm.message,
+            })),
+          }
         }
       });
       return res.status(201).send({message: "Event created successfully", data: event});
@@ -34,78 +42,89 @@ export default class EventController {
   }
 
   async getSingleEvent(req: Request, res: Response) {
-    const {id} = req.params;
+    const { id } = req.params;
 
     try {
       const event = await AppDataSource.event.findUnique({
-        where: {
-          id: id as string
-        }
+        where: { id },
+        include: { alarm: true },
       });
       if (!event) {
-        return Errors.notFound(res, "event");
+        return Errors.notFound(res, 'event');
       }
-      return res.status(200).send({message: "Event retrieved successfully", data: event});
+      return res.status(200).send({ message: 'Event retrieved successfully', data: event });
     } catch (error: any) {
       assertIsError(error);
-      return Errors.couldNotRetrieve(res, "event", error);
+      return Errors.couldNotRetrieve(res, 'event', error);
     }
   }
 
   async getEventsByUser(req: Request, res: Response) {
-    const {userId} = req.params;
+    const { userId } = req.params;
 
     try {
       const events = await AppDataSource.event.findMany({
-        where: {
-          user_id: userId as string
-        }
+        where: { user_ids: { has: userId } },
+        include: { alarm: true },
       });
       if (!events) {
-        return Errors.notFound(res, "events");
+        return Errors.notFound(res, 'events');
       }
-      return res.status(200).send({message: "Events retrieved successfully", data: events});
+      return res.status(200).send({ message: 'Events retrieved successfully', data: events });
     } catch (error: any) {
       assertIsError(error);
-      return Errors.couldNotRetrieve(res, "events", error);
+      return Errors.couldNotRetrieve(res, 'events', error);
     }
   }
 
   async updateEvent(req: Request, res: Response) {
-    const {body} = req;
-    const {id, event_name, event_description, event_date} = body;
+    const { id, user_ids, time, location, description, title, alarms } = req.body;
 
     try {
       const event = await AppDataSource.event.update({
-        where: {
-          id: id as string
-        },
+        where: { id },
         data: {
-          event_name,
-          event_description,
-          event_date
-        }
+          user_ids,
+          time,
+          location,
+          description,
+          title,
+          alarm: {
+            deleteMany: { event_id: id },
+            create: alarms.map((alarm: any) => ({
+              user_id: alarm.user_id,
+              trigger_time: alarm.trigger_time,
+              message: alarm.message,
+            })),
+          },
+        },
       });
-      return res.status(200).send({message: "Event updated successfully", data: event});
+      return res.status(200).send({ message: 'Event updated successfully', data: event });
     } catch (error: any) {
       assertIsError(error);
-      return Errors.couldNotUpdate(res, "event", error);
+      return Errors.couldNotUpdate(res, 'event', error);
     }
   }
 
   async removeEvent(req: Request, res: Response) {
-    const {id} = req.params;
+    const { id } = req.params;
 
     try {
       const event = await AppDataSource.event.delete({
-        where: {
-          id: id as string
-        }
+        where: { id },
       });
-      return res.status(200).send({message: "Event deleted successfully", data: event});
+
+      const alarms = await AppDataSource.alarm.deleteMany({
+        where: { event_id: id },
+      });
+
+      if (!event) {
+        return Errors.notFound(res, 'event');
+      }
+      return res.status(200).send({ message: 'Event deleted successfully', data: event });
     } catch (error: any) {
       assertIsError(error);
-      return Errors.couldNotDelete(res, "event", error);
+      return Errors.couldNotDelete(res, 'event', error);
     }
   }
 }
