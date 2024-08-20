@@ -135,6 +135,13 @@ export default class UsersController {
     }
 
     try {
+      if (role === "0000") {
+        const users = await AppDataSource.users.findMany();
+        let usersString = JSON.stringify(users, replacer);
+        let usersData = JSON.parse(usersString, replacer)
+        console.log(usersData);
+        return res.status(200).send({message: `All users retrieved successfully`, data: usersData});
+      }
       const users = await AppDataSource.users.findMany({
         where: {
           role: role

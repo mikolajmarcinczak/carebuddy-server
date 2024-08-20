@@ -2,6 +2,9 @@ import AppDataSource from "../utility/data-source";
 import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import {Request, Response} from "express";
+import { validate as isUUID } from "uuid";
+
+const MINUTES_FOR_ALARM = 3;
 
 export default class NoteController {
   constructor() {
@@ -52,16 +55,29 @@ export default class NoteController {
     const { user_id, related_user_ids, related_urls, title, content } = req.body;
 
     try {
+      if (!isUUID(user_id)) {
+        throw new Error(`Invalid UUID format for user_id: ${user_id}`);
+      }
+
+      const formattedRelatedUserIds = related_user_ids.map((id: string) => {
+        if (!isUUID(id)) {
+          throw new Error(`Invalid UUID format for related_user_id: ${id}`);
+        }
+        return id;
+      });
+
       const note = await AppDataSource.noteentity.update({
         where: { id },
         data: {
           user_id,
-          related_user_ids,
+          related_user_ids: formattedRelatedUserIds,
           related_urls,
           title,
           content,
+          updated_at: new Date(Date.now()),
         },
       });
+
       return res.status(200).send({ message: "Note updated successfully", data: note });
     } catch (error: any) {
       assertIsError(error);
@@ -89,9 +105,18 @@ export default class NoteController {
   async getNotesByUser(req: Request, res: Response) {
     const { userId } = req.params;
 
+    if (!userId || userId === "" || userId === undefined) {
+      return Errors.badRequest(res, "notes");
+    }
+
     try {
       const notes = await AppDataSource.noteentity.findMany({
-        where: { user_id: userId },
+        where: {
+          OR: [
+            { user_id: userId },
+            { related_user_ids: { has: userId } }
+          ]
+        }
       });
       if (!notes) {
         return Errors.notFound(res, "notes");
@@ -104,19 +129,70 @@ export default class NoteController {
   }
 
   async sendNote(req: Request, res: Response) {
-    const { userId } = req.params;
-    const { noteId } = req.body;
+    const { noteId, user_ids } = req.body;
 
     try {
       const note = await AppDataSource.noteentity.findUnique({
         where: { id: noteId },
       });
+
       if (!note) {
         return Errors.notFound(res, "note");
       }
-      // Implement the logic to send the note to the user
-      // This could involve creating a notification, sending an email, etc.
-      return res.status(200).send({ message: "Note sent successfully", data: note });
+
+      let formattedUserIds = user_ids.map((id: string) => {
+        if (!isUUID(id)) {
+          throw new Error(`Invalid UUID format for user_id: ${id}`);
+        }
+        return id;
+      });
+
+      formattedUserIds = formattedUserIds.filter(
+          (userId: string) => !note.related_user_ids.includes(userId)
+      );
+
+      if (formattedUserIds.length === 0) {
+        return Errors.badRequest(res, "All users are already related to this note.");
+      }
+
+      const timeout = new Date(Date.now() + 1000 * 60 * MINUTES_FOR_ALARM);
+
+      const updatedNote = await AppDataSource.noteentity.update({
+        where: { id: noteId },
+        data : {
+          related_user_ids: {
+            push: formattedUserIds
+          }
+        }
+      });
+
+      const event = await AppDataSource.event.create({
+        data: {
+          user_ids: updatedNote.related_user_ids,
+          time: timeout,
+          location: "N/A",
+          description: `${note.content}\n\nFROM: ${note.user_id}`,
+          title: note.title,
+        }
+      });
+
+      const alarmsData = user_ids.map((user_id: string) => ({
+        user_id,
+        event_id: event.id,
+        trigger_time: new Date(Date.now() + 1000 * 60 * MINUTES_FOR_ALARM),
+        message: `${note.title}: ${note.content}\n\nFROM: ${note.user_id}`,
+      }));
+
+      try {
+        const set_alarms = await AppDataSource.alarm.createMany({
+          data: alarmsData
+        });
+      }
+      catch (error: any) {
+        throw error;
+      }
+
+      return res.status(200).send({ message: "Note sent successfully", data: {updatedNote, event, alarmsData } });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotCreate(res, "note", error);

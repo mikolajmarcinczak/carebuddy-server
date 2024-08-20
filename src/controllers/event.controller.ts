@@ -18,19 +18,27 @@ export default class EventController {
 
 
     try {
+      const formattedUserIds = user_ids.map((id: string) => {
+        if (id.length !== 36) {
+          throw new Error(`Invalid UUID format for user_id: ${id}`);
+        }
+        return id;
+      })
+
       const event = await AppDataSource.event.create({
         data: {
-          user_ids,
-          time,
+          user_ids: formattedUserIds,
+          time: new Date(time),
           location,
           description,
           title,
           alarm: {
-            create: alarms.map((alarm: any) => ({
+            create: Array.isArray(alarms) ? alarms.map((alarm: any) => ({
               user_id: alarm.user_id,
-              trigger_time: alarm.trigger_time,
+              event_id: alarm.event_id,
+              trigger_time: new Date(alarm.trigger_time),
               message: alarm.message,
-            })),
+            })) : [],
           }
         }
       });
@@ -78,7 +86,8 @@ export default class EventController {
   }
 
   async updateEvent(req: Request, res: Response) {
-    const { id, user_ids, time, location, description, title, alarms } = req.body;
+    const id = req.params.id;
+    const { user_ids, time, location, description, title, alarms } = req.body;
 
     try {
       const event = await AppDataSource.event.update({

@@ -16,7 +16,7 @@ class NoteRoutes implements IRoutes {
     this.router.put('/update/:id', this.controller.updateNote);
     this.router.get('/get/:id', this.controller.getSingleNote);
     this.router.get('/get-many/:userId', this.controller.getNotesByUser);
-    this.router.put('/send/:userId', this.controller.sendNote);
+    this.router.put('/send/', this.controller.sendNote);
   }
 }
 

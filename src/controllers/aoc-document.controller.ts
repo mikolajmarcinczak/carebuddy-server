@@ -2,6 +2,7 @@ import AppDataSource from "../utility/data-source";
 import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import {Request, Response} from "express";
+import {PrismaClientKnownRequestError} from "@prisma/client/runtime/library";
 
 export default class AocDocumentController {
 
@@ -12,8 +13,7 @@ export default class AocDocumentController {
   }
 
   async assignCare(req: Request, res: Response) {
-    const {body} = req;
-    const {elderly_id, caregiver_id, document_url} = body;
+    const { elderly_id, caregiver_id, document_url } = req.body;
 
     try {
       const document = await AppDataSource.authorizationofcare.create({
@@ -23,9 +23,16 @@ export default class AocDocumentController {
           document_url
         }
       });
+      return res.status(200).send({message: "Assignment of Care completed successfully", data: document.document_url});
     }
     catch (error: any) {
       assertIsError(error);
+      if (error instanceof PrismaClientKnownRequestError) {
+        error = error as PrismaClientKnownRequestError;
+        if (error.code === 'P2002' && error.meta.target?.includes('elderly_id') && error.meta?.target?.includes('caregiver_id')) {
+          return res.status(409).send({message: "This care assignment already exists."});
+        }
+      }
       return Errors.couldNotCreate(res, "authorization_of_care", error);
     }
   }

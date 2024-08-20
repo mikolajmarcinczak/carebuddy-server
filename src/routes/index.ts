@@ -28,7 +28,7 @@ export default class Routes {
     app.use("/api/note", noteRoutes);
     app.use("/api/medicament", medicamentRoutes);
     app.use("/api/medical-treatment", medicalTreatmentRoutes);
-    app.use("api/event", eventRoutes);
+    app.use("/api/event", eventRoutes);
 
   }
 }
