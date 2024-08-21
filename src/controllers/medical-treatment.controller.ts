@@ -48,7 +48,7 @@ export default class MedicalTreatmentController {
         where: { id: { in: medicamentIds } },
       });
 
-      return res.status(200).send({ message: "Medicaments retrieved successfully", data: medicaments });
+      return res.status(200).send({ message: "Medicaments retrieved successfully", data: { medicaments, treatments } });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotRetrieve(res, "medicaments", error);
@@ -63,7 +63,7 @@ export default class MedicalTreatmentController {
         data: {
           user_id,
           medicament_ids,
-          diagnosis_date,
+          diagnosis_date: new Date(diagnosis_date).toISOString(),
           diagnosis,
           treatment_plan,
           certificate_url,
@@ -87,7 +87,7 @@ export default class MedicalTreatmentController {
         data: {
           user_id,
           medicament_ids,
-          diagnosis_date,
+          diagnosis_date: new Date(diagnosis_date).toISOString(),
           diagnosis,
           treatment_plan,
           certificate_url,
