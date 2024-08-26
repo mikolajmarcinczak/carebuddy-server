@@ -61,6 +61,7 @@ model event {
   location    String?  @db.String(255)
   description String?
   title       String   @db.String(255)
+  recurring   Boolean  @default(false)
   alarm       alarm[]
 }
 
