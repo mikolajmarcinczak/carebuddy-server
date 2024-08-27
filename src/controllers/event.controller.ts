@@ -14,8 +14,7 @@ export default class EventController {
   }
 
   async addEvent(req: Request, res: Response) {
-    const {user_ids, time, location, description, title, alarms } = req.body;
-
+    const {user_ids, time, location, description, title, recurring } = req.body;
 
     try {
       const formattedUserIds = user_ids.map((id: string) => {
@@ -25,6 +24,10 @@ export default class EventController {
         return id;
       })
 
+      if (!user_ids || !Array.isArray(user_ids)) {
+        return res.status(400).json({ error: 'user_ids must be a defined array' });
+      }
+
       const event = await AppDataSource.event.create({
         data: {
           user_ids: formattedUserIds,
@@ -32,14 +35,7 @@ export default class EventController {
           location,
           description,
           title,
-          alarm: {
-            create: Array.isArray(alarms) ? alarms.map((alarm: any) => ({
-              user_id: alarm.user_id,
-              event_id: alarm.event_id,
-              trigger_time: new Date(alarm.trigger_time),
-              message: alarm.message,
-            })) : [],
-          }
+          recurring
         }
       });
       return res.status(201).send({message: "Event created successfully", data: event});
