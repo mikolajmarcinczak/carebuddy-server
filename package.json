@@ -10,7 +10,7 @@
       "start:dev": "concurrently \"tsc -w\" \"nodemon build/server.js\""
    },
    "dependencies": {
-      "@prisma/client": "^5.11.0",
+      "@prisma/client": "^5.18.0",
       "@types/bcrypt": "^5.0.2",
       "@types/cookie-parser": "^1.4.7",
       "@types/cors": "^2.8.17",
@@ -43,7 +43,7 @@
       "@types/helmet": "^4.0.0",
       "@types/node": "^16.11.10",
       "@types/uuid": "^10.0.0",
-      "prisma": "^5.11.0",
+      "prisma": "^5.18.0",
       "ts-node": "10.9.1"
    }
 }
