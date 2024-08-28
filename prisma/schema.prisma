@@ -116,7 +116,7 @@ model noteentity {
 
 model users {
   user_id                String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username               String                   @unique @db.String(50)
+  username               String                   @db.String(50)
   password               String                   @db.String(100)
   role                   String                   @db.String(50)
   email                  String                   @unique @db.String(100)

@@ -31,10 +31,12 @@ export default class UsersController {
         });
       }
 
+      let userData = JSON.parse(JSON.stringify(user, replacer));
+
       if (!user) {
         return Errors.notFound(res, 'users');
       }
-      return res.status(200).send({message: `User '${user.username}' retrieved successfully`, data: user});
+      return res.status(200).send({message: `User '${userData.username}' retrieved successfully`, data: userData});
     }
     catch (error: unknown) {
      assertIsError(error);
@@ -137,8 +139,7 @@ export default class UsersController {
     try {
       if (role === "0000") {
         const users = await AppDataSource.users.findMany();
-        let usersString = JSON.stringify(users, replacer);
-        let usersData = JSON.parse(usersString, replacer)
+        let usersData = users.map(user => JSON.parse(JSON.stringify(user, replacer)));
         console.log(usersData);
         return res.status(200).send({message: `All users retrieved successfully`, data: usersData});
       }
@@ -148,10 +149,9 @@ export default class UsersController {
         }
       });
 
-      let usersString = JSON.stringify(users, replacer);
-      let usersData = JSON.parse(usersString, replacer)
+      let usersData = users.map(user => JSON.parse(JSON.stringify(user, replacer)));
       console.log(usersData);
-      res.status(200).send({message: `Users with role '${role}' retrieved successfully`, data: usersData});
+      return res.status(200).send({message: `Users with role '${role}' retrieved successfully`, data: usersData});
     }
     catch (error: unknown) {
       assertIsError(error);
@@ -229,7 +229,7 @@ export default class UsersController {
       if (identifier.includes('@')) {
         user = await AppDataSource.users.findUnique({
           where: {
-            user_id: identifier
+            email: identifier
           },
           include: {
             caregiveraccountinfo: true,
@@ -240,7 +240,7 @@ export default class UsersController {
       else {
         user = await AppDataSource.users.findUnique({
           where: {
-            email: identifier
+            user_id: identifier
           },
           include: {
             caregiveraccountinfo: true,

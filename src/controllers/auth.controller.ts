@@ -1,14 +1,15 @@
 import {Request, Response} from "express";
-import {validationResult} from "express-validator";
+import {PrismaClientKnownRequestError} from "@prisma/client/runtime/library";
 import {UserDTO} from "../dto/user.dto";
 import {Errors} from "../utility/dberrors";
+import {validationResult} from "express-validator";
 import {generateToken} from "../utility/generate.token";
-import {assertIsError} from "../utility/error.guard";
 
+import {assertIsError} from "../utility/error.guard";
 import * as argon2 from "argon2";
 import * as jwt from "jsonwebtoken";
-import * as process from "process";
 
+import * as process from "process";
 import AppDataSource from "../utility/data-source";
 import MailService from "../services/mail.service";
 import HtmlProcessingService from "../services/html-processing.service";
@@ -173,6 +174,7 @@ export default class AuthController {
   async register(req: Request, res: Response) {
     const userBody = req.body;
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
       return res.status(400).json({message: 'Errors found during validation', errors: errors.array()});
     }
@@ -207,6 +209,9 @@ export default class AuthController {
       res.cookie('accessToken', token, {httpOnly: true, secure: true, path: '/'});
       return res.status(200).send({message: `User '${userData.username}' created successfully`, data: userData, token: token});
     } catch (error: unknown) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
+        return res.status(400).json({ message: 'Username already exists' });
+      }
       assertIsError(error);
       return Errors.couldNotCreate(res, 'auth', error);
     }

@@ -2,6 +2,7 @@ import {Request, Response} from "express";
 import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import AppDataSource from "../utility/data-source";
+import {replacer} from "../utility/json.replacer";
 
 export default class UserDataController {
   async getElderlyAccountInfo(req: Request, res: Response) {
@@ -34,10 +35,12 @@ export default class UserDataController {
         });
       }
 
+      let userData = JSON.parse(JSON.stringify(user, replacer));
+
       if (!user || !user.elderlyaccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
-      return res.status(200).send({message: `Data for user '${user.username}' retrieved successfully`, data: user});
+      return res.status(200).send({message: `Data for user '${userData.username}' retrieved successfully`, data: userData});
     }
     catch (error: unknown) {
       assertIsError(error);
@@ -158,10 +161,12 @@ export default class UserDataController {
         });
       }
 
+      let userData = JSON.parse(JSON.stringify(user, replacer));
+
       if (!user || !user.caregiveraccountinfo) {
         return Errors.notFound(res, 'users');
       }
-      return res.status(200).send({message: `Data for user '${user.username}' retrieved successfully`, data: user});
+      return res.status(200).send({message: `Data for user '${userData.username}' retrieved successfully`, data: userData});
     }
     catch (error: unknown) {
       assertIsError(error);
