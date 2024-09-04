@@ -3,6 +3,7 @@ import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import AppDataSource from "../utility/data-source";
 import {replacer} from "../utility/json.replacer";
+import {filterUndefinedFields} from "../utility/undefined-fields.filter";
 
 export default class UserDataController {
   async getElderlyAccountInfo(req: Request, res: Response) {
@@ -71,8 +72,34 @@ export default class UserDataController {
       let user_id = user.user_id;
 
       const accountInfo = await AppDataSource.elderlyaccountinfo.create({
-        data: {...userBody, user_id }
+        data: {
+          phone_number: userBody.phone_number,
+          address: userBody.address,
+          city: userBody.city,
+          date_of_birth: new Date(userBody.date_of_birth),
+          about_me: userBody.about_me,
+          height: userBody.height,
+          weight: userBody.weight,
+          emergency_number: userBody.emergency_number,
+          user_id: user_id
+        }
       });
+
+      if (accountInfo) {
+        await AppDataSource.users.update({
+          where: {
+            user_id: user_id
+          },
+          data: {
+            username: userBody.username,
+            elderlyaccountinfo: {
+              connect: {
+                user_id: user_id
+              }
+            }
+          }
+        });
+      }
 
       return res.status(201).send({message: `Data for user '${user.username}' created successfully`, data: accountInfo});
     }
@@ -117,12 +144,30 @@ export default class UserDataController {
         return Errors.notFound(res, 'usersData');
       }
 
+      const updateData = filterUndefinedFields(userBody);
+
       const accountInfo = await AppDataSource.elderlyaccountinfo.update({
         where: {
           user_id: user.user_id
         },
-        data: userBody
+        data: updateData
       });
+
+      if (accountInfo) {
+        await AppDataSource.users.update({
+          where: {
+            user_id: user.user_id
+          },
+          data: {
+            username: userBody.username,
+            elderlyaccountinfo: {
+              connect: {
+                user_id: user.user_id
+              }
+            }
+          }
+        });
+      }
 
       return res.status(200).send({message: `Data for user '${user.username}' updated successfully`, data: accountInfo});
     }
@@ -136,7 +181,7 @@ export default class UserDataController {
     const identifier = req.query.identifier as string;
 
     if (identifier === "" || identifier === undefined || identifier === null) {
-      return Errors.badRequest(res, 'users');
+      return Errors.badRequest(res, 'usersData');
     }
 
     try {
@@ -164,13 +209,13 @@ export default class UserDataController {
       let userData = JSON.parse(JSON.stringify(user, replacer));
 
       if (!user || !user.caregiveraccountinfo) {
-        return Errors.notFound(res, 'users');
+        return Errors.notFound(res, 'usersData');
       }
       return res.status(200).send({message: `Data for user '${userData.username}' retrieved successfully`, data: userData});
     }
     catch (error: unknown) {
       assertIsError(error);
-      return Errors.couldNotRetrieve(res, 'users', error);
+      return Errors.couldNotRetrieve(res, 'usersData', error);
     }
   }
 
@@ -190,15 +235,37 @@ export default class UserDataController {
       });
 
       if (!user) {
-        return Errors.notFound(res, 'usersData');
+        return Errors.notFound(res, 'user for usersData');
       }
 
       delete userBody.email;
       let user_id = user.user_id;
 
       const accountInfo = await AppDataSource.caregiveraccountinfo.create({
-        data: {...userBody, user_id}
+        data: {
+          phone_number: userBody.phone_number,
+          city: userBody.city,
+          date_of_birth: new Date(userBody.date_of_birth),
+          about_me: userBody.about_me,
+          user_id: user_id
+        }
       });
+
+      if (accountInfo) {
+        await AppDataSource.users.update({
+          where: {
+            user_id: user_id
+          },
+          data: {
+            username: userBody.username,
+            caregiveraccountinfo: {
+              connect: {
+                user_id: user_id
+              }
+            }
+          }
+        });
+      }
 
       return res.status(201).send({message: `Data for user '${user.username}' created successfully`, data: accountInfo});
     }
@@ -209,10 +276,10 @@ export default class UserDataController {
   }
 
   async updateCaregiverAccountInfo(req: Request, res: Response) {
-    const userBod = req.body;
+    const userBody = req.body;
     const identifier = req.query.identifier as string;
 
-    if (Object.keys(userBod).length === 0 || identifier === "" || identifier === undefined || identifier === null) {
+    if (Object.keys(userBody).length === 0 || identifier === "" || identifier === undefined || identifier === null) {
       return Errors.badRequest(res, 'usersData');
     }
 
@@ -243,12 +310,30 @@ export default class UserDataController {
         return Errors.notFound(res, 'usersData');
       }
 
+      const updateData = filterUndefinedFields(userBody);
+
       const accountInfo = await AppDataSource.caregiveraccountinfo.update({
         where: {
           user_id: user.user_id
         },
-        data: userBod
+        data: updateData
       });
+
+      if (accountInfo) {
+        await AppDataSource.users.update({
+          where: {
+            user_id: user.user_id
+          },
+          data: {
+            username: userBody.username,
+            caregiveraccountinfo: {
+              connect: {
+                user_id: user.user_id
+              }
+            }
+          }
+        });
+      }
 
       return res.status(200).send({message: `Data for user '${user.username}' updated successfully`, data: accountInfo});
     }
