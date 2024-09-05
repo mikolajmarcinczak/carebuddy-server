@@ -10,6 +10,8 @@ export default class AocDocumentController {
     this.assignCare = this.assignCare.bind(this);
     this.getAuthorizationDocument = this.getAuthorizationDocument.bind(this);
     this.unassignCare = this.unassignCare.bind(this);
+    this.getProteges = this.getProteges.bind(this);
+    this.getCaregivers = this.getCaregivers.bind(this);
   }
 
   async assignCare(req: Request, res: Response) {
@@ -88,6 +90,62 @@ export default class AocDocumentController {
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotDelete(res, "authorization_of_care", error);
+    }
+  }
+
+  async getProteges(req: Request, res: Response) {
+    const caregiver_id = req.params.caregiver_id as string;
+
+    if (!caregiver_id) {
+      return Errors.badRequest(res, "authorization_of_care");
+    }
+
+    try {
+      const proteges = await AppDataSource.authorizationofcare.findMany({
+        where: {
+          caregiver_id: caregiver_id
+        },
+        select: {
+          elderly_id: true
+        }
+      });
+
+      if (!proteges) {
+        return Errors.notFound(res, "authorization_of_care");
+      }
+
+      return res.status(200).send({message: "Proteges retrieved successfully", data: proteges});
+    } catch(error: any) {
+      assertIsError(error);
+      return Errors.couldNotRetrieve(res, "authorization_of_care", error);
+    }
+  }
+
+  async getCaregivers(req: Request, res: Response) {
+    const elderly_id = req.params.elderly_id as string;
+
+    if (!elderly_id) {
+      return Errors.badRequest(res, "authorization_of_care");
+    }
+
+    try {
+      const caregivers = await AppDataSource.authorizationofcare.findMany({
+        where: {
+          elderly_id: elderly_id
+        },
+        select: {
+          caregiver_id: true
+        }
+      });
+
+      if (!caregivers) {
+        return Errors.notFound(res, "authorization_of_care");
+      }
+
+      return res.status(200).send({message: "Caregivers retrieved successfully", data: caregivers});
+    } catch(error: any) {
+      assertIsError(error);
+      return Errors.couldNotRetrieve(res, "authorization_of_care", error);
     }
   }
 }
