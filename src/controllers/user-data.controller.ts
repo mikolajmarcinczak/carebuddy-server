@@ -38,7 +38,7 @@ export default class UserDataController {
 
       let userData = JSON.parse(JSON.stringify(user, replacer));
 
-      if (!user || !user.elderlyaccountinfo) {
+      if (!user && !user.elderlyaccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
       return res.status(200).send({message: `Data for user '${userData.username}' retrieved successfully`, data: userData});
@@ -60,7 +60,7 @@ export default class UserDataController {
       let user;
       user = await AppDataSource.users.findUnique({
         where: {
-          email: userBody.email
+          email: userBody.user.email
         }
       });
 
@@ -68,7 +68,7 @@ export default class UserDataController {
         return Errors.notFound(res, 'usersData');
       }
 
-      delete userBody.email;
+      delete userBody.user.email;
       let user_id = user.user_id;
 
       const accountInfo = await AppDataSource.elderlyaccountinfo.create({
@@ -140,7 +140,7 @@ export default class UserDataController {
         });
       }
 
-      if (!user || !user.elderlyaccountinfo) {
+      if (!user && !user.elderlyaccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
 
@@ -159,7 +159,7 @@ export default class UserDataController {
             user_id: user.user_id
           },
           data: {
-            username: userBody.username,
+            username: userBody.user.username,
             elderlyaccountinfo: {
               connect: {
                 user_id: user.user_id
@@ -208,7 +208,7 @@ export default class UserDataController {
 
       let userData = JSON.parse(JSON.stringify(user, replacer));
 
-      if (!user || !user.caregiveraccountinfo) {
+      if (!user && !user.caregiveraccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
       return res.status(200).send({message: `Data for user '${userData.username}' retrieved successfully`, data: userData});
@@ -230,7 +230,7 @@ export default class UserDataController {
       let user;
       user = await AppDataSource.users.findUnique({
         where: {
-          email: userBody.email
+          email: userBody.user.email
         }
       });
 
@@ -238,7 +238,7 @@ export default class UserDataController {
         return Errors.notFound(res, 'user for usersData');
       }
 
-      delete userBody.email;
+      delete userBody.user.email;
       let user_id = user.user_id;
 
       const accountInfo = await AppDataSource.caregiveraccountinfo.create({
@@ -257,7 +257,7 @@ export default class UserDataController {
             user_id: user_id
           },
           data: {
-            username: userBody.username,
+            username: userBody.user.username,
             caregiveraccountinfo: {
               connect: {
                 user_id: user_id
@@ -306,7 +306,7 @@ export default class UserDataController {
         });
       }
 
-      if (!user || !user.caregiveraccountinfo) {
+      if (!user && !user.caregiveraccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
 
