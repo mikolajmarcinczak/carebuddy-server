@@ -140,11 +140,15 @@ export default class UserDataController {
         });
       }
 
-      if (!user && !user.elderlyaccountinfo) {
+      if (!user || !user.elderlyaccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
 
       const updateData = filterUndefinedFields(userBody);
+      delete updateData.user;
+      if (updateData.date_of_birth) {
+        updateData.date_of_birth = new Date(updateData.date_of_birth);
+      }
 
       const accountInfo = await AppDataSource.elderlyaccountinfo.update({
         where: {
@@ -306,11 +310,15 @@ export default class UserDataController {
         });
       }
 
-      if (!user && !user.caregiveraccountinfo) {
+      if (!user || !user.caregiveraccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
 
       const updateData = filterUndefinedFields(userBody);
+      delete updateData.user;
+      if (updateData.date_of_birth) {
+        updateData.date_of_birth = new Date(updateData.date_of_birth);
+      }
 
       const accountInfo = await AppDataSource.caregiveraccountinfo.update({
         where: {

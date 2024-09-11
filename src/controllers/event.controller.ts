@@ -16,6 +16,10 @@ export default class EventController {
   async addEvent(req: Request, res: Response) {
     const {user_ids, time, location, description, title, recurring } = req.body;
 
+    if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+      return Errors.badRequest(res, 'user_ids field is required and must be a non-empty array');
+    }
+
     try {
       const formattedUserIds = user_ids.map((id: string) => {
         if (id.length !== 36) {
@@ -23,10 +27,6 @@ export default class EventController {
         }
         return id;
       })
-
-      if (!user_ids || !Array.isArray(user_ids)) {
-        return res.status(400).json({ error: 'user_ids must be a defined array' });
-      }
 
       const event = await AppDataSource.event.create({
         data: {
