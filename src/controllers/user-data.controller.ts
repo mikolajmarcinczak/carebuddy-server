@@ -19,9 +19,6 @@ export default class UserDataController {
         user = await AppDataSource.users.findUnique({
           where: {
             email: identifier
-          },
-          include: {
-            elderlyaccountinfo: true
           }
         });
       }
@@ -29,18 +26,27 @@ export default class UserDataController {
         user = await AppDataSource.users.findUnique({
           where: {
             user_id: identifier
-          },
-          include: {
-            elderlyaccountinfo: true
           }
         });
       }
 
-      let userData = JSON.parse(JSON.stringify(user, replacer));
-
       if (!user && !user.elderlyaccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
+
+      const accountInfo = await AppDataSource.elderlyaccountinfo.findUnique({
+        where: {
+          user_id: user.user_id
+        }
+      });
+
+      const userData = {
+        ...JSON.parse(JSON.stringify(user, replacer)),
+        elderlyaccountinfo: JSON.parse(JSON.stringify(accountInfo, replacer))
+      };
+
+      console.log('Data for user:' + JSON.stringify(userData));
+
       return res.status(200).send({message: `Data for user '${userData.username}' retrieved successfully`, data: userData});
     }
     catch (error: unknown) {
@@ -91,7 +97,8 @@ export default class UserDataController {
             user_id: user_id
           },
           data: {
-            username: userBody.username,
+            username: userBody.user.username,
+            image_url: userBody.user.image_url,
             elderlyaccountinfo: {
               connect: {
                 user_id: user_id
@@ -164,6 +171,7 @@ export default class UserDataController {
           },
           data: {
             username: userBody.user.username,
+            image_url: userBody.user.image_url,
             elderlyaccountinfo: {
               connect: {
                 user_id: user.user_id
@@ -194,27 +202,32 @@ export default class UserDataController {
         user = await AppDataSource.users.findUnique({
           where: {
             email: identifier
-          },
-          include: {
-            caregiveraccountinfo: true
           }
         });
       } else {
         user = await AppDataSource.users.findUnique({
           where: {
             user_id: identifier
-          },
-          include: {
-            caregiveraccountinfo: true
           }
         });
       }
 
-      let userData = JSON.parse(JSON.stringify(user, replacer));
-
       if (!user && !user.caregiveraccountinfo) {
         return Errors.notFound(res, 'usersData');
       }
+
+      const accountInfo = await AppDataSource.caregiveraccountinfo.findUnique({
+        where: {
+          user_id: user.user_id
+        }
+      });
+
+      const userData = {
+        ...JSON.parse(JSON.stringify(user, replacer)),
+        caregiveraccountinfo: JSON.parse(JSON.stringify(accountInfo, replacer))
+      };
+
+      console.log('Data for user:' + JSON.stringify(userData));
       return res.status(200).send({message: `Data for user '${userData.username}' retrieved successfully`, data: userData});
     }
     catch (error: unknown) {
@@ -262,6 +275,7 @@ export default class UserDataController {
           },
           data: {
             username: userBody.user.username,
+            image_url: userBody.user.image_url,
             caregiveraccountinfo: {
               connect: {
                 user_id: user_id
@@ -333,7 +347,8 @@ export default class UserDataController {
             user_id: user.user_id
           },
           data: {
-            username: userBody.username,
+            username: userBody.user.username,
+            image_url: userBody.user.image_url,
             caregiveraccountinfo: {
               connect: {
                 user_id: user.user_id

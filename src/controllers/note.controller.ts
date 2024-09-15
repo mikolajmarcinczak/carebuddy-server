@@ -22,13 +22,29 @@ export default class NoteController {
     try {
       const note = await AppDataSource.noteentity.create({
         data: {
-          user_id,
-          related_user_ids,
-          related_urls,
-          title,
-          content,
+          user_id: user_id as string,
+          related_user_ids: related_user_ids as string[],
+          related_urls: related_urls as string[],
+          title: title as string,
+          content: content as string,
         },
       });
+
+      related_user_ids.push(user_id);
+
+      for (const id of related_user_ids) {
+        await AppDataSource.users.update({
+          where: { user_id: id },
+          data: {
+            noteentity: {
+              connect: {
+                id: note.id
+              }
+            }
+          }
+        });
+      };
+
       return res.status(201).send({ message: "Note created successfully", data: note });
     } catch (error: any) {
       assertIsError(error);
@@ -77,6 +93,21 @@ export default class NoteController {
           updated_at: new Date(Date.now()),
         },
       });
+
+      related_user_ids.push(user_id);
+
+      for (const id of related_user_ids) {
+        await AppDataSource.users.update({
+          where: { user_id: id },
+          data: {
+            noteentity: {
+              connect: {
+                id: note.id
+              }
+            }
+          }
+        });
+      };
 
       return res.status(200).send({ message: "Note updated successfully", data: note });
     } catch (error: any) {

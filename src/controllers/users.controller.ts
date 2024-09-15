@@ -61,6 +61,10 @@ export default class UsersController {
       const users = await AppDataSource.users.findMany({
         where: {
           role: role
+        },
+        include: {
+          caregiveraccountinfo: true,
+          elderlyaccountinfo: true
         }
       });
 
