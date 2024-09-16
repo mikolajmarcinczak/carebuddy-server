@@ -2,6 +2,8 @@ import AppDataSource from "../utility/data-source";
 import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import {Request, Response} from "express";
+import { validate as isUUID } from 'uuid';
+import {replacer} from "../utility/json.replacer";
 
 export default class MedicamentController {
   constructor() {
@@ -11,10 +13,16 @@ export default class MedicamentController {
     this.addMedicament = this.addMedicament.bind(this);
     this.modifyMedicament = this.modifyMedicament.bind(this);
     this.removeMedicament = this.removeMedicament.bind(this);
+    this.getAllMedicaments = this.getAllMedicaments.bind(this);
   }
 
   async getMedicamentDetails(req: Request, res: Response) {
     const { id } = req.params;
+
+    if (!isUUID(id)) {
+      res.status(400).json({ error: 'Invalid UUID format' });
+      return;
+    }
 
     try {
       const medicament = await AppDataSource.medicamententity.findUnique({
@@ -23,7 +31,11 @@ export default class MedicamentController {
       if (!medicament) {
         return Errors.notFound(res, "medicament");
       }
-      return res.status(200).send({ message: "Medicament details retrieved successfully", data: medicament });
+
+      let medicamentData = JSON.parse(JSON.stringify(medicament, replacer));
+      console.log(medicamentData);
+
+      return res.status(200).send({ message: "Medicament details retrieved successfully", data: medicamentData });
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotRetrieve(res, "medicament", error);
@@ -104,6 +116,18 @@ export default class MedicamentController {
     } catch (error: any) {
       assertIsError(error);
       return Errors.couldNotDelete(res, "medicament", error);
+    }
+  }
+
+  async getAllMedicaments(req: Request, res: Response) {
+    try {
+      const medicaments = await AppDataSource.medicamententity.findMany();
+      let medicamentsData = medicaments.map(medicament => JSON.parse(JSON.stringify(medicament, replacer)));
+      console.log(medicamentsData);
+      return res.status(200).send({ message: "Medicaments retrieved successfully", data: medicamentsData });
+    } catch (error: any) {
+      assertIsError(error);
+      return Errors.couldNotRetrieve(res, "medicaments", error);
     }
   }
 

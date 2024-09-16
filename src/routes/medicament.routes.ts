@@ -11,9 +11,10 @@ class MedicamentRoutes {
   }
 
   initRoutes(): void {
-    this.router.get('/:id', this.controller.getMedicamentDetails);
+    this.router.get('/single/:id', this.controller.getMedicamentDetails);
     this.router.get('/calculate', this.controller.calculateAppropriateDose);
     this.router.get('/get/:manufacturer', this.controller.getMedicamentsByManufacturer);
+    this.router.get('/getAll', this.controller.getAllMedicaments);
     this.router.post('/', this.controller.addMedicament);
     this.router.put('/:id', this.controller.modifyMedicament);
     this.router.delete('/:id', this.controller.removeMedicament);
