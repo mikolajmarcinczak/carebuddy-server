@@ -3,6 +3,7 @@ import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import {Request, Response} from "express";
 import {PrismaClientKnownRequestError} from "@prisma/client/runtime/library";
+import {replacer} from "../utility/json.replacer";
 
 export default class AocDocumentController {
 
@@ -18,13 +19,30 @@ export default class AocDocumentController {
     const { elderly_id, caregiver_id, document_url } = req.body;
 
     try {
+      const elderlyExists = await AppDataSource.elderlyaccountinfo.findUnique({
+        where: { user_id: elderly_id }
+      });
+      console.log(elderlyExists);
+      if (!elderlyExists) {
+        return res.status(404).send({ message: "Elderly not found" });
+      }
+
+      const caregiverExists = await AppDataSource.caregiveraccountinfo.findUnique({
+        where: { user_id: caregiver_id }
+      });
+      console.log(caregiverExists);
+      if (!caregiverExists) {
+        return res.status(404).send({ message: "Caregiver not found" });
+      }
+
       const document = await AppDataSource.authorizationofcare.create({
         data: {
-          elderly_id,
-          caregiver_id,
-          document_url
+          elderly_id: elderly_id,
+          caregiver_id: caregiver_id,
+          document_url: document_url
         }
       });
+
       return res.status(200).send({message: "Assignment of Care completed successfully", data: document.document_url});
     }
     catch (error: any) {
@@ -105,8 +123,12 @@ export default class AocDocumentController {
         where: {
           caregiver_id: caregiver_id
         },
-        select: {
-          elderly_id: true
+        include: {
+          elderlyaccountinfo: {
+            include: {
+              users: true
+            }
+          }
         }
       });
 
@@ -114,7 +136,17 @@ export default class AocDocumentController {
         return Errors.notFound(res, "authorization_of_care");
       }
 
-      return res.status(200).send({message: "Proteges retrieved successfully", data: proteges});
+      const protegeList = proteges.map(protege => {
+        const user = protege.elderlyaccountinfo.users;
+        const accountInfo = protege.elderlyaccountinfo;
+        delete accountInfo.users;
+        return {
+          ...JSON.parse(JSON.stringify(user, replacer)),
+          elderlyaccountinfo: JSON.parse(JSON.stringify(accountInfo, replacer))
+        };
+      });
+
+      return res.status(200).send({message: "Proteges retrieved successfully", data: protegeList});
     } catch(error: any) {
       assertIsError(error);
       return Errors.couldNotRetrieve(res, "authorization_of_care", error);
@@ -133,8 +165,12 @@ export default class AocDocumentController {
         where: {
           elderly_id: elderly_id
         },
-        select: {
-          caregiver_id: true
+        include: {
+          caregiveraccountinfo: {
+            include: {
+              users: true
+            }
+          }
         }
       });
 
@@ -142,7 +178,17 @@ export default class AocDocumentController {
         return Errors.notFound(res, "authorization_of_care");
       }
 
-      return res.status(200).send({message: "Caregivers retrieved successfully", data: caregivers});
+      const caregiverList = caregivers.map(caregiver => {
+        const user = caregiver.caregiveraccountinfo.users;
+        const accountInfo = caregiver.caregiveraccountinfo;
+        delete accountInfo.users;
+        return {
+          ...JSON.parse(JSON.stringify(user, replacer)),
+          caregiveraccountinfo: JSON.parse(JSON.stringify(accountInfo, replacer))
+        };
+      });
+
+      return res.status(200).send({message: "Caregivers retrieved successfully", data: caregiverList});
     } catch(error: any) {
       assertIsError(error);
       return Errors.couldNotRetrieve(res, "authorization_of_care", error);

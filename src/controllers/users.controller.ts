@@ -26,7 +26,7 @@ export default class UsersController {
       else {
         user = await AppDataSource.users.findUnique({
           where: {
-            user_id: identifier
+            user_id: JSON.parse(JSON.stringify(identifier, replacer))
           }
         });
       }
@@ -55,7 +55,6 @@ export default class UsersController {
       if (role === "0000") {
         const users = await AppDataSource.users.findMany();
         let usersData = users.map(user => JSON.parse(JSON.stringify(user, replacer)));
-        console.log(usersData);
         return res.status(200).send({message: `All users retrieved successfully`, data: usersData});
       }
       const users = await AppDataSource.users.findMany({
@@ -69,7 +68,6 @@ export default class UsersController {
       });
 
       let usersData = users.map(user => JSON.parse(JSON.stringify(user, replacer)));
-      console.log(usersData);
       return res.status(200).send({message: `Users with role '${role}' retrieved successfully`, data: usersData});
     }
     catch (error: unknown) {

@@ -3,6 +3,7 @@ import {assertIsError} from "../utility/error.guard";
 import {Errors} from "../utility/dberrors";
 import {Request, Response} from "express";
 import { validate as isUUID } from "uuid";
+import {replacer} from "../utility/json.replacer";
 
 const MINUTES_FOR_ALARM = 3;
 
@@ -160,27 +161,34 @@ export default class NoteController {
   }
 
   async sendNote(req: Request, res: Response) {
-    const { noteId, user_ids } = req.body;
+    const { note_id, user_ids } = req.body;
+
+    const noteId = JSON.parse(JSON.stringify(note_id, replacer));
+    const userIds = user_ids.map(user_id => JSON.parse(JSON.stringify(user_id, replacer)));
 
     try {
       const note = await AppDataSource.noteentity.findUnique({
-        where: { id: noteId },
+        where: { id: noteId.replace(/"/g, '') },
       });
 
       if (!note) {
         return Errors.notFound(res, "note");
       }
 
-      let formattedUserIds = user_ids.map((id: string) => {
+      let formattedUserIds = userIds.map((id: string) => {
         if (!isUUID(id)) {
           throw new Error(`Invalid UUID format for user_id: ${id}`);
         }
         return id;
       });
 
+      console.log(formattedUserIds);
+
       formattedUserIds = formattedUserIds.filter(
-          (userId: string) => !note.related_user_ids.includes(userId)
+          (userId: string) => note.related_user_ids.includes(userId)
       );
+
+      console.log(formattedUserIds);
 
       if (formattedUserIds.length === 0) {
         return Errors.badRequest(res, "All users are already related to this note.");
@@ -207,7 +215,7 @@ export default class NoteController {
         }
       });
 
-      const alarmsData = user_ids.map((user_id: string) => ({
+      const alarmsData = userIds.map((user_id: string) => ({
         user_id,
         event_id: event.id,
         trigger_time: new Date(Date.now() + 1000 * 60 * MINUTES_FOR_ALARM),
