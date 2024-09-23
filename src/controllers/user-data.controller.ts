@@ -6,6 +6,15 @@ import {replacer} from "../utility/json.replacer";
 import {filterUndefinedFields} from "../utility/undefined-fields.filter";
 
 export default class UserDataController {
+  constructor() {
+    this.getElderlyAccountInfo = this.getElderlyAccountInfo.bind(this);
+    this.addElderlyAccountInfo = this.addElderlyAccountInfo.bind(this);
+    this.updateElderlyAccountInfo = this.updateElderlyAccountInfo.bind(this);
+    this.getCaregiverAccountInfo = this.getCaregiverAccountInfo.bind(this);
+    this.addCaregiverAccountInfo = this.addCaregiverAccountInfo.bind(this);
+    this.updateCaregiverAccountInfo = this.updateCaregiverAccountInfo.bind(this);
+  }
+
   async getElderlyAccountInfo(req: Request, res: Response) {
     const identifier = req.query.identifier as string;
 
