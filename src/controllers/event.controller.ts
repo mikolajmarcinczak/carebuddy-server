@@ -90,7 +90,7 @@ export default class EventController {
         where: { id },
         data: {
           user_ids,
-          time,
+          time: new Date(time),
           location,
           description,
           title,
@@ -98,7 +98,7 @@ export default class EventController {
             deleteMany: { event_id: id },
             create: alarms.map((alarm: any) => ({
               user_id: alarm.user_id,
-              trigger_time: alarm.trigger_time,
+              trigger_time: new Date(alarm.trigger_time),
               message: alarm.message,
             })),
           },

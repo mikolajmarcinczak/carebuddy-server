@@ -5,6 +5,13 @@ import AppDataSource from "../utility/data-source";
 import {replacer} from "../utility/json.replacer";
 
 export default class UsersController {
+  constructor() {
+    this.getSingleUser = this.getSingleUser.bind(this);
+    this.getUsersByRole = this.getUsersByRole.bind(this);
+    this.addSingleUser = this.addSingleUser.bind(this);
+    this.updateSingleUser = this.updateSingleUser.bind(this);
+    this.removeSingleUser = this.removeSingleUser.bind(this);
+  }
 
   //region Get
   async getSingleUser(req: Request, res: Response) {
