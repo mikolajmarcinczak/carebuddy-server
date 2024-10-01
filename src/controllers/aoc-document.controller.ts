@@ -18,9 +18,13 @@ export default class AocDocumentController {
   async assignCare(req: Request, res: Response) {
     const { elderly_id, caregiver_id, document_url } = req.body;
 
+    if (!elderly_id || !caregiver_id) {
+      return res.status(400).send({ message: 'Both elderly_id and caregiver_id are required' });
+    }
+
     try {
       const elderlyExists = await AppDataSource.elderlyaccountinfo.findUnique({
-        where: { user_id: elderly_id }
+        where: { user_id: elderly_id as string }
       });
       console.log(elderlyExists);
       if (!elderlyExists) {
@@ -28,7 +32,7 @@ export default class AocDocumentController {
       }
 
       const caregiverExists = await AppDataSource.caregiveraccountinfo.findUnique({
-        where: { user_id: caregiver_id }
+        where: { user_id: caregiver_id as string }
       });
       console.log(caregiverExists);
       if (!caregiverExists) {
@@ -60,6 +64,10 @@ export default class AocDocumentController {
   async getAuthorizationDocument(req: Request, res: Response) {
     const {elderly_id, caregiver_id} = req.body;
 
+    if (!elderly_id || !caregiver_id) {
+      return res.status(400).send({ message: 'Both elderly_id and caregiver_id are required' });
+    }
+
     try {
       const document = await AppDataSource.authorizationofcare.findUnique({
         where: {
@@ -81,6 +89,10 @@ export default class AocDocumentController {
 
   async unassignCare(req: Request, res: Response) {
     const {elderly_id, caregiver_id} = req.body;
+
+    if (!elderly_id || !caregiver_id) {
+      return res.status(400).send({ message: 'Both elderly_id and caregiver_id are required' });
+    }
 
     const document = await AppDataSource.authorizationofcare.findUnique({
       where: {
