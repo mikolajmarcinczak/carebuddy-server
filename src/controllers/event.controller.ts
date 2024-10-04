@@ -14,7 +14,7 @@ export default class EventController {
   }
 
   async addEvent(req: Request, res: Response) {
-    const {user_ids, time, location, description, title, recurring } = req.body;
+    const {user_ids, time, location, description, title, recurring, alarms } = req.body;
 
     if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
       return Errors.badRequest(res, 'user_ids field is required and must be a non-empty array');
@@ -35,7 +35,14 @@ export default class EventController {
           location,
           description,
           title,
-          recurring
+          recurring,
+          alarm: {
+            create: alarms.map((alarm: any) => ({
+              user_id: alarm.user_id,
+              trigger_time: new Date(alarm.trigger_time),
+              message: alarm.message,
+            }))
+          }
         }
       });
       return res.status(201).send({message: "Event created successfully", data: event});
